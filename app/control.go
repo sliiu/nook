@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"pixel-control-center/internal/audio"
+	"pixel-control-center/internal/brightness"
 )
 
 const (
@@ -20,30 +21,56 @@ type LevelRow struct {
 	Adjustable bool `json:"adjustable"`
 }
 
+// BrightnessRow is what GetBrightness hands back.
+type BrightnessRow struct {
+	Level     int  `json:"level"`
+	Available bool `json:"available"`
+}
+
+// SystemState is the dual-axis snapshot for scene boot.
+type SystemState struct {
+	Volume     int  `json:"volume"`
+	Brightness int  `json:"brightness"`
+	Available  bool `json:"brightnessAvailable"`
+}
+
+type axisSlot struct {
+	seen   int
+	expect *int
+	ready  bool
+}
+
 // Control is bound as window.mygo "Control". Methods run on their own
 // goroutines; fields shared with the watcher take mu.
 type Control struct {
-	mu       sync.Mutex
-	audio    audio.Backend
-	shell    Shell
-	seen     int
-	expect   *int
-	device   *uint64
-	ready    bool
-	dragging bool
-	hideAt   time.Time
-	hiding   bool
+	mu         sync.Mutex
+	audio      audio.Backend
+	brightness brightness.Backend
+	shell      Shell
+	volume     axisSlot
+	bright     axisSlot
+	device     *uint64
+	dragging   bool
+	hideAt     time.Time
+	hiding     bool
 }
 
-// NewControl wires an audio backend and the tray shell.
-func NewControl(backend audio.Backend, shell Shell) *Control {
-	c := &Control{audio: backend, shell: shell}
-	if level, err := backend.Level(); err == nil {
-		c.seen = level.Percent
-		c.ready = true
+// NewControl wires backends and the tray shell. brightness may be nil; then
+// brightness reads as unavailable.
+func NewControl(audioBackend audio.Backend, brightBackend brightness.Backend, shell Shell) *Control {
+	c := &Control{audio: audioBackend, brightness: brightBackend, shell: shell}
+	if level, err := audioBackend.Level(); err == nil {
+		c.volume.seen = level.Percent
+		c.volume.ready = true
 	}
-	if key, err := backend.DefaultKey(); err == nil {
+	if key, err := audioBackend.DefaultKey(); err == nil {
 		c.device = key
+	}
+	if brightBackend != nil && brightBackend.Available() {
+		if level, err := brightBackend.Level(); err == nil {
+			c.bright.seen = level.Percent
+			c.bright.ready = true
+		}
 	}
 	return c
 }
@@ -56,19 +83,15 @@ func (c *Control) GetVolume() (LevelRow, error) {
 		return LevelRow{}, err
 	}
 	c.mu.Lock()
-	c.absorb(level.Percent)
-	c.mu.Unlock()
-	return LevelRow{Level: level.Percent, Muted: level.Muted, Adjustable: level.Adjustable}, nil
-}
-
-func (c *Control) absorb(percent int) {
-	c.seen = percent
-	c.ready = true
+	c.volume.seen = level.Percent
+	c.volume.ready = true
 	if c.device == nil {
-		if key, err := c.audio.DefaultKey(); err == nil {
+		if key, keyErr := c.audio.DefaultKey(); keyErr == nil {
 			c.device = key
 		}
 	}
+	c.mu.Unlock()
+	return LevelRow{Level: level.Percent, Muted: level.Muted, Adjustable: level.Adjustable}, nil
 }
 
 // SetVolume sets the default output. A non-zero write unmutes.
@@ -79,9 +102,9 @@ func (c *Control) SetVolume(level int) error {
 	}
 	c.mu.Lock()
 	expected := level
-	c.expect = &expected
-	c.seen = level
-	c.ready = true
+	c.volume.expect = &expected
+	c.volume.seen = level
+	c.volume.ready = true
 	c.mu.Unlock()
 	return nil
 }
@@ -94,12 +117,64 @@ func (c *Control) SetMute(muted bool) error {
 	if muted {
 		c.mu.Lock()
 		zero := 0
-		c.expect = &zero
-		c.seen = 0
-		c.ready = true
+		c.volume.expect = &zero
+		c.volume.seen = 0
+		c.volume.ready = true
 		c.mu.Unlock()
 	}
 	return nil
+}
+
+// GetBrightness returns built-in display brightness. Available is false when
+// the backend cannot drive the panel.
+func (c *Control) GetBrightness() (BrightnessRow, error) {
+	if c.brightness == nil || !c.brightness.Available() {
+		return BrightnessRow{Level: 0, Available: false}, nil
+	}
+	level, err := c.brightness.Level()
+	if err != nil {
+		return BrightnessRow{}, err
+	}
+	c.mu.Lock()
+	c.bright.seen = level.Percent
+	c.bright.ready = true
+	c.mu.Unlock()
+	return BrightnessRow{Level: level.Percent, Available: level.Available}, nil
+}
+
+// SetBrightness sets built-in brightness. No-op when unavailable.
+func (c *Control) SetBrightness(level int) error {
+	if c.brightness == nil || !c.brightness.Available() {
+		return nil
+	}
+	level = brightness.ClampPercent(level)
+	if err := c.brightness.Set(level); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	expected := level
+	c.bright.expect = &expected
+	c.bright.seen = level
+	c.bright.ready = true
+	c.mu.Unlock()
+	return nil
+}
+
+// GetState returns volume and brightness together for scene start.
+func (c *Control) GetState() (SystemState, error) {
+	vol, err := c.GetVolume()
+	if err != nil {
+		return SystemState{}, err
+	}
+	bright, err := c.GetBrightness()
+	if err != nil {
+		return SystemState{}, err
+	}
+	return SystemState{
+		Volume:     vol.Level,
+		Brightness: bright.Level,
+		Available:  bright.Available,
+	}, nil
 }
 
 // NoteDrag is the pointer on the pad/slider. While down, own writes are the
@@ -128,7 +203,7 @@ func (c *Control) NoteIdle() {
 	c.hiding = true
 }
 
-// Watch polls output volume until stop is closed.
+// Watch polls volume and brightness until stop is closed.
 func (c *Control) Watch(stop <-chan struct{}) {
 	ticker := time.NewTicker(pollEvery)
 	defer ticker.Stop()
@@ -146,12 +221,18 @@ func (c *Control) poll() {
 	c.mu.Lock()
 	if c.dragging {
 		if level, err := c.audio.Level(); err == nil {
-			c.seen = level.Percent
-			c.ready = true
+			c.volume.seen = level.Percent
+			c.volume.ready = true
 			if c.device == nil {
 				if key, keyErr := c.audio.DefaultKey(); keyErr == nil {
 					c.device = key
 				}
+			}
+		}
+		if c.brightness != nil && c.brightness.Available() {
+			if level, err := c.brightness.Level(); err == nil {
+				c.bright.seen = level.Percent
+				c.bright.ready = true
 			}
 		}
 		c.mu.Unlock()
@@ -179,44 +260,86 @@ func (c *Control) poll() {
 }
 
 type external struct {
-	level int
+	volume     *int
+	brightness *int
 }
 
 func (c *Control) takeExternal() (external, bool) {
+	var out external
+	changed := false
+
+	if vol, ok := c.takeVolumeExternal(); ok {
+		v := vol
+		out.volume = &v
+		changed = true
+	}
+	if bright, ok := c.takeBrightnessExternal(); ok {
+		b := bright
+		out.brightness = &b
+		changed = true
+	}
+	return out, changed
+}
+
+func (c *Control) takeVolumeExternal() (int, bool) {
 	level, err := c.audio.Level()
 	if err != nil {
-		return external{}, false
+		return 0, false
 	}
 	device, _ := c.audio.DefaultKey()
-	if !c.ready {
-		c.seen = level.Percent
+	if !c.volume.ready {
+		c.volume.seen = level.Percent
 		c.device = device
-		c.ready = true
-		return external{}, false
+		c.volume.ready = true
+		return 0, false
 	}
-	levelChanged := level.Percent != c.seen
+	levelChanged := level.Percent != c.volume.seen
 	deviceChanged := !sameKey(device, c.device)
 	if !levelChanged && !deviceChanged {
-		return external{}, false
+		return 0, false
 	}
 	c.device = device
 	if levelChanged {
-		if c.expect != nil && *c.expect == level.Percent {
-			c.seen = level.Percent
+		if c.volume.expect != nil && *c.volume.expect == level.Percent {
+			c.volume.seen = level.Percent
 			if !deviceChanged {
-				return external{}, false
+				return 0, false
 			}
 		} else {
-			c.expect = nil
-			c.seen = level.Percent
-			return external{level: level.Percent}, true
+			c.volume.expect = nil
+			c.volume.seen = level.Percent
+			return level.Percent, true
 		}
 	}
-	// Device-only change: still announce so the page can refresh.
 	if deviceChanged && c.device != nil {
-		return external{level: level.Percent}, true
+		return level.Percent, true
 	}
-	return external{}, false
+	return 0, false
+}
+
+func (c *Control) takeBrightnessExternal() (int, bool) {
+	if c.brightness == nil || !c.brightness.Available() {
+		return 0, false
+	}
+	level, err := c.brightness.Level()
+	if err != nil || !level.Available {
+		return 0, false
+	}
+	if !c.bright.ready {
+		c.bright.seen = level.Percent
+		c.bright.ready = true
+		return 0, false
+	}
+	if level.Percent == c.bright.seen {
+		return 0, false
+	}
+	if c.bright.expect != nil && *c.bright.expect == level.Percent {
+		c.bright.seen = level.Percent
+		return 0, false
+	}
+	c.bright.expect = nil
+	c.bright.seen = level.Percent
+	return level.Percent, true
 }
 
 func sameKey(a, b *uint64) bool {
@@ -229,8 +352,11 @@ func sameKey(a, b *uint64) bool {
 func (c *Control) showExternal(change external, form string) {
 	if c.shell != nil {
 		if panel := c.shell.Panel(); panel != nil {
-			vol := change.level
-			StateChanged.Emit(panel, StateChange{Source: "external", Volume: &vol})
+			StateChanged.Emit(panel, StateChange{
+				Source:     "external",
+				Volume:     change.volume,
+				Brightness: change.brightness,
+			})
 		}
 	}
 	if form == "full" {

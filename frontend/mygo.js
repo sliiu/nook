@@ -15,6 +15,15 @@ export const Control = {
   setMute(muted) {
     return call("Control.SetMute", muted);
   },
+  getBrightness() {
+    return call("Control.GetBrightness");
+  },
+  setBrightness(level) {
+    return call("Control.SetBrightness", level);
+  },
+  getState() {
+    return call("Control.GetState");
+  },
   noteDrag(dragging) {
     return call("Control.NoteDrag", dragging);
   },

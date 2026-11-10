@@ -4,7 +4,7 @@
 
 ## 状态
 
-M1：输出音量（CoreAudio）+ `Control` 桥 + short 浮层监听。亮度与二维点控尚未接入。
+M2：输出音量 + 内建亮度桥 + `GetState` / `state-changed`。无内建屏时亮度 `available=false`。二维点控尚未接入。
 
 ## 开发
 

@@ -17,6 +17,7 @@ import (
 
 	"pixel-control-center/app"
 	"pixel-control-center/internal/audio"
+	"pixel-control-center/internal/brightness"
 )
 
 //go:embed all:frontend
@@ -182,11 +183,15 @@ func main() {
 	}
 	mygo.SetFrontend(web)
 
-	backend, err := audio.New()
+	audioBackend, err := audio.New()
 	if err != nil {
 		log.Fatal("output volume unavailable: ", err)
 	}
-	bridge = app.NewControl(backend, trayShell{})
+	brightBackend, err := brightness.New()
+	if err != nil {
+		log.Fatal("brightness backend: ", err)
+	}
+	bridge = app.NewControl(audioBackend, brightBackend, trayShell{})
 	mygo.Bind(bridge)
 
 	mygo.App.SetName("Pixel Control Center")

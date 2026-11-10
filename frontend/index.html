@@ -29,7 +29,7 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 18px;
+        gap: 14px;
         padding: 28px 32px;
       }
       h1 {
@@ -56,7 +56,7 @@
         flex: 1;
         accent-color: #c9a0ff;
       }
-      #level {
+      .value {
         width: 36px;
         text-align: right;
         font-variant-numeric: tabular-nums;
@@ -81,6 +81,7 @@
         font: inherit;
         font-size: 12px;
         cursor: pointer;
+        align-self: flex-start;
       }
       button[aria-pressed="true"] {
         background: #c9a0ff;
@@ -92,59 +93,87 @@
     <div id="scene-host">
       <div id="form-pill">full</div>
       <div>
-        <h1>输出音量</h1>
-        <p class="meta">M1 临时滑条。M3 换成二维点控 Home。</p>
+        <h1>音量 / 亮度</h1>
+        <p class="meta">M2 临时滑条。M3 换成二维点控 Home。</p>
       </div>
       <div class="row">
         <label for="volume">Vol</label>
         <input id="volume" type="range" min="0" max="100" value="0" />
-        <span id="level">0</span>
+        <span id="vol-level" class="value">0</span>
+      </div>
+      <div class="row">
+        <label for="brightness">Bri</label>
+        <input id="brightness" type="range" min="0" max="100" value="0" />
+        <span id="bri-level" class="value">0</span>
       </div>
       <button id="mute" type="button" aria-pressed="false">静音</button>
     </div>
     <script type="module">
       import { Control, events } from "./mygo.js";
 
-      const slider = document.getElementById("volume");
-      const levelEl = document.getElementById("level");
+      const volSlider = document.getElementById("volume");
+      const briSlider = document.getElementById("brightness");
+      const volLevel = document.getElementById("vol-level");
+      const briLevel = document.getElementById("bri-level");
       const muteBtn = document.getElementById("mute");
       const formPill = document.getElementById("form-pill");
 
-      let adjustable = true;
       let dragging = false;
 
-      function paint(level, muted) {
-        slider.value = String(level);
-        levelEl.textContent = String(level);
+      function paintVolume(level, muted) {
+        volSlider.value = String(level);
+        volLevel.textContent = String(level);
         muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
         muteBtn.textContent = muted ? "已静音" : "静音";
       }
 
-      async function refresh() {
-        const row = await Control.getVolume();
-        adjustable = row.adjustable;
-        slider.disabled = !adjustable;
-        muteBtn.disabled = !adjustable;
-        paint(row.level, row.muted);
+      function paintBrightness(level, available) {
+        briSlider.disabled = !available;
+        if (!available) {
+          briLevel.textContent = "—";
+          return;
+        }
+        briSlider.value = String(level);
+        briLevel.textContent = String(level);
       }
 
-      slider.addEventListener("pointerdown", () => {
-        dragging = true;
-        Control.noteDrag(true);
-      });
-      const endDrag = () => {
-        if (!dragging) return;
-        dragging = false;
-        Control.noteDrag(false);
-        Control.noteIdle();
-      };
-      slider.addEventListener("pointerup", endDrag);
-      slider.addEventListener("pointercancel", endDrag);
+      async function refresh() {
+        const state = await Control.getState();
+        const vol = await Control.getVolume();
+        paintVolume(state.volume, vol.muted);
+        volSlider.disabled = !vol.adjustable;
+        muteBtn.disabled = !vol.adjustable;
+        paintBrightness(state.brightness, state.brightnessAvailable);
+      }
 
-      slider.addEventListener("input", async () => {
-        const level = Number(slider.value);
-        levelEl.textContent = String(level);
+      function bindDrag(el) {
+        el.addEventListener("pointerdown", () => {
+          dragging = true;
+          Control.noteDrag(true);
+        });
+        const endDrag = () => {
+          if (!dragging) return;
+          dragging = false;
+          Control.noteDrag(false);
+          Control.noteIdle();
+        };
+        el.addEventListener("pointerup", endDrag);
+        el.addEventListener("pointercancel", endDrag);
+      }
+
+      bindDrag(volSlider);
+      bindDrag(briSlider);
+
+      volSlider.addEventListener("input", async () => {
+        const level = Number(volSlider.value);
+        volLevel.textContent = String(level);
         await Control.setVolume(level);
+      });
+
+      briSlider.addEventListener("input", async () => {
+        const level = Number(briSlider.value);
+        briLevel.textContent = String(level);
+        await Control.setBrightness(level);
       });
 
       muteBtn.addEventListener("click", async () => {
@@ -157,7 +186,10 @@
         if (dragging) return;
         if (change.source !== "external") return;
         if (typeof change.volume === "number") {
-          paint(change.volume, change.volume === 0);
+          paintVolume(change.volume, change.volume === 0);
+        }
+        if (typeof change.brightness === "number") {
+          paintBrightness(change.brightness, true);
         }
       });
 
@@ -166,7 +198,7 @@
       });
 
       refresh().catch((err) => {
-        levelEl.textContent = "!";
+        volLevel.textContent = "!";
         console.error(err);
       });
     </script>
