@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Control Center</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: transparent;
+        color: #e7e1d6;
+        font-family: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+      }
+      body {
+        display: grid;
+        place-items: center;
+      }
+      #scene-host {
+        box-sizing: border-box;
+        width: 360px;
+        height: 360px;
+        border-radius: 28px;
+        background: #241c30;
+        box-shadow: 0 10px 28px rgb(20 12 28 / 0.45);
+        display: grid;
+        place-items: center;
+        text-align: center;
+        padding: 24px;
+      }
+      #scene-host h1 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      #scene-host p {
+        margin: 0;
+        font-size: 13px;
+        opacity: 0.72;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="scene-host">
+      <div>
+        <h1>Pixel Control Center</h1>
+        <p>M0 骨架。稍后在这里挂上二维点控场景。</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,7 @@
+dist/
+*.app
+/pixel-control-center
+/mygo.ts
+.DS_Store
+*.exe
+*.dmg

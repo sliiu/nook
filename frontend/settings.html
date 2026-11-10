@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <title>设置</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1c1724;
+        color: #e7e1d6;
+        font-family: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+        font-size: 13px;
+      }
+      body {
+        display: flex;
+        min-width: 480px;
+        min-height: 560px;
+      }
+      nav {
+        flex: 0 0 132px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px 10px;
+        box-sizing: border-box;
+        background: #16121c;
+      }
+      nav button {
+        appearance: none;
+        border: 0;
+        border-radius: 8px;
+        background: #2c2438;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        padding: 8px 10px;
+      }
+      main {
+        flex: 1;
+        padding: 20px 18px;
+        line-height: 1.5;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+      p {
+        margin: 0 0 8px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <button type="button" aria-pressed="true">场景</button>
+      <button type="button">关于</button>
+    </nav>
+    <main>
+      <h1>场景</h1>
+      <p>M0 占位。M4 会在这里做场景名称 / HTML 的增删改与导入。</p>
+      <p>出厂 Home 将是正方形二维点控：X = 音量，Y = 亮度。</p>
+    </main>
+  </body>
+</html>

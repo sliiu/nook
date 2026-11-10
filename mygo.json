@@ -1,0 +1,10 @@
+{
+  "name": "Pixel Control Center",
+  "identifier": "ai.ludion.pixel-control-center",
+  "version": "0.1.0",
+  "license": "MIT",
+  "icon": "resources/icon.png",
+  "frontendDist": "frontend",
+  "bindings": "mygo.ts",
+  "out": "dist"
+}
