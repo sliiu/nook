@@ -18,7 +18,7 @@ jobs:
       - name: Build .app and .dmg
         env:
           CGO_ENABLED: "1"
-        run: go tool mygo build
+        run: go run github.com/egoist/mygo/cmd/mygo build
       - name: Locate dmg
         run: |
           ls -R dist | head -30
