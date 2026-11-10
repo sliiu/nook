@@ -20,187 +20,75 @@
         place-items: center;
       }
       #scene-host {
-        box-sizing: border-box;
-        width: 360px;
-        height: 360px;
-        border-radius: 28px;
-        background: #241c30;
-        box-shadow: 0 10px 28px rgb(20 12 28 / 0.45);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 14px;
-        padding: 28px 32px;
+        width: max-content;
+        height: max-content;
+        position: relative;
       }
-      h1 {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-      }
-      .meta {
-        margin: 0;
-        font-size: 12px;
-        opacity: 0.7;
-      }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .row label {
-        width: 36px;
-        font-size: 12px;
-        opacity: 0.85;
-      }
-      input[type="range"] {
-        flex: 1;
-        accent-color: #c9a0ff;
-      }
-      .value {
-        width: 36px;
-        text-align: right;
-        font-variant-numeric: tabular-nums;
+      #scene-host .boot {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
         font-size: 13px;
-      }
-      #form-pill {
-        align-self: flex-start;
-        font-size: 11px;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        padding: 4px 8px;
-        border-radius: 999px;
-        background: rgb(255 255 255 / 0.08);
-      }
-      button {
-        appearance: none;
-        border: 0;
-        border-radius: 10px;
-        padding: 8px 12px;
-        background: rgb(255 255 255 / 0.1);
-        color: inherit;
-        font: inherit;
-        font-size: 12px;
-        cursor: pointer;
-        align-self: flex-start;
-      }
-      button[aria-pressed="true"] {
-        background: #c9a0ff;
-        color: #1c1724;
+        opacity: 0.75;
       }
     </style>
   </head>
   <body>
     <div id="scene-host">
-      <div id="form-pill">full</div>
-      <div>
-        <h1>音量 / 亮度</h1>
-        <p class="meta">M2 临时滑条。M3 换成二维点控 Home。</p>
-      </div>
-      <div class="row">
-        <label for="volume">Vol</label>
-        <input id="volume" type="range" min="0" max="100" value="0" />
-        <span id="vol-level" class="value">0</span>
-      </div>
-      <div class="row">
-        <label for="brightness">Bri</label>
-        <input id="brightness" type="range" min="0" max="100" value="0" />
-        <span id="bri-level" class="value">0</span>
-      </div>
-      <button id="mute" type="button" aria-pressed="false">静音</button>
+      <div class="boot">加载 Home…</div>
     </div>
     <script type="module">
       import { Control, events } from "./mygo.js";
+      import { mountScene, mountSceneURL } from "./scene-host.js";
 
-      const volSlider = document.getElementById("volume");
-      const briSlider = document.getElementById("brightness");
-      const volLevel = document.getElementById("vol-level");
-      const briLevel = document.getElementById("bri-level");
-      const muteBtn = document.getElementById("mute");
-      const formPill = document.getElementById("form-pill");
+      const host = document.getElementById("scene-host");
+      const api = { Control, events };
+      let loading = 0;
 
-      let dragging = false;
-
-      function paintVolume(level, muted) {
-        volSlider.value = String(level);
-        volLevel.textContent = String(level);
-        muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
-        muteBtn.textContent = muted ? "已静音" : "静音";
-      }
-
-      function paintBrightness(level, available) {
-        briSlider.disabled = !available;
-        if (!available) {
-          briLevel.textContent = "—";
-          return;
-        }
-        briSlider.value = String(level);
-        briLevel.textContent = String(level);
-      }
-
-      async function refresh() {
-        const state = await Control.getState();
-        const vol = await Control.getVolume();
-        paintVolume(state.volume, vol.muted);
-        volSlider.disabled = !vol.adjustable;
-        muteBtn.disabled = !vol.adjustable;
-        paintBrightness(state.brightness, state.brightnessAvailable);
-      }
-
-      function bindDrag(el) {
-        el.addEventListener("pointerdown", () => {
-          dragging = true;
-          Control.noteDrag(true);
-        });
-        const endDrag = () => {
-          if (!dragging) return;
-          dragging = false;
-          Control.noteDrag(false);
-          Control.noteIdle();
-        };
-        el.addEventListener("pointerup", endDrag);
-        el.addEventListener("pointercancel", endDrag);
-      }
-
-      bindDrag(volSlider);
-      bindDrag(briSlider);
-
-      volSlider.addEventListener("input", async () => {
-        const level = Number(volSlider.value);
-        volLevel.textContent = String(level);
-        await Control.setVolume(level);
-      });
-
-      briSlider.addEventListener("input", async () => {
-        const level = Number(briSlider.value);
-        briLevel.textContent = String(level);
-        await Control.setBrightness(level);
-      });
-
-      muteBtn.addEventListener("click", async () => {
-        const muted = muteBtn.getAttribute("aria-pressed") !== "true";
-        await Control.setMute(muted);
-        await refresh();
-      });
-
-      events.stateChanged.on((change) => {
-        if (dragging) return;
-        if (change.source !== "external") return;
-        if (typeof change.volume === "number") {
-          paintVolume(change.volume, change.volume === 0);
-        }
-        if (typeof change.brightness === "number") {
-          paintBrightness(change.brightness, true);
-        }
-      });
-
-      events.pillForm.on((payload) => {
-        formPill.textContent = payload.form || "?";
-      });
-
-      refresh().catch((err) => {
-        volLevel.textContent = "!";
+      function fail(err) {
+        host.replaceChildren();
+        const box = document.createElement("div");
+        box.className = "boot";
+        box.textContent = "场景加载失败：" + String(err && err.message ? err.message : err);
+        host.appendChild(box);
         console.error(err);
-      });
+      }
+
+      // Mount the selected scene; fall back to the bundled Home if the bridge
+      // or the saved HTML is unusable.
+      async function load() {
+        const ticket = ++loading;
+        try {
+          const scene = await Control.currentScene();
+          if (ticket !== loading) return;
+          await mountScene(host, scene.html, api);
+        } catch (err) {
+          if (ticket !== loading) return;
+          console.error(err);
+          try {
+            await mountSceneURL(host, "./scenes/home.html", api);
+          } catch (inner) {
+            fail(inner);
+          }
+        }
+      }
+
+      // The scene decides the flyout size: report what it measures.
+      let lastSize = "";
+      new ResizeObserver(() => {
+        const w = Math.round(host.offsetWidth);
+        const h = Math.round(host.offsetHeight);
+        const key = w + "x" + h;
+        if (key === lastSize || w < 1 || h < 1) return;
+        lastSize = key;
+        Control.setFlyoutSize(w, h).catch(() => {});
+      }).observe(host);
+
+      events.scenesChanged.on(load);
+      load();
     </script>
   </body>
 </html>

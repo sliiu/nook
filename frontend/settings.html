@@ -2,65 +2,867 @@
 <html lang="zh">
   <head>
     <meta charset="utf-8" />
-    <title>设置</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nook</title>
     <style>
+      :root {
+        --paper: #f1ebdf;
+        --card: #fbf7ef;
+        --ink: #231a3f;
+        --ink-2: #5d5478;
+        --line: #231a3f;
+        --soft: #e2d9c8;
+        --accent: #ff7b3a;
+        --accent-2: #ffd36b;
+        --ok: #2f9e5f;
+        --bad: #d6402f;
+        --shadow: 3px 3px 0 var(--ink);
+        --font: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
       html,
       body {
         margin: 0;
         height: 100%;
-        background: #1c1724;
-        color: #e7e1d6;
-        font-family: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
-        font-size: 13px;
+        background: var(--paper);
+        color: var(--ink);
+        font: 13px/1.5 var(--font);
+        user-select: none;
+        -webkit-user-select: none;
       }
+      /* faint dot grid, like graph paper */
       body {
+        background-image: radial-gradient(rgb(35 26 63 / 0.09) 1px, transparent 1.2px);
+        background-size: 14px 14px;
         display: flex;
-        min-width: 480px;
-        min-height: 560px;
+        flex-direction: column;
+        overflow: hidden;
       }
-      nav {
-        flex: 0 0 132px;
+      button,
+      input,
+      textarea,
+      summary {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 3px solid var(--accent-2);
+        outline-offset: 1px;
+      }
+
+      /* ---------- chrome ---------- */
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 28px 0;
+      }
+      .logo {
+        width: 34px;
+        height: 34px;
+        flex: none;
+      }
+      .top h1 {
+        margin: 0;
+        font-size: 19px;
+        letter-spacing: 0.02em;
+        flex: 1;
+      }
+      .top h1 small {
+        display: block;
+        font: 11px/1.2 var(--mono);
+        color: var(--ink-2);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .tabs {
+        display: flex;
+        border: 2px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .tabs button {
+        border: 0;
+        background: transparent;
+        padding: 6px 18px;
+        cursor: default;
+        font-weight: 600;
+      }
+      .tabs button + button {
+        border-left: 2px solid var(--line);
+      }
+      .tabs button[aria-selected="true"] {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      main {
+        flex: 1;
+        min-height: 0;
+        padding: 18px 28px 22px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+
+      /* ---------- buttons ---------- */
+      .btn {
+        border: 2px solid var(--line);
+        background: var(--card);
+        border-radius: 9px;
+        padding: 5px 13px;
+        font-weight: 600;
+        box-shadow: 2px 2px 0 var(--ink);
+        cursor: default;
+        transition: transform 0.06s, box-shadow 0.06s;
+      }
+      .btn:hover:not(:disabled) {
+        background: #fff;
+      }
+      .btn:active:not(:disabled) {
+        transform: translate(2px, 2px);
+        box-shadow: 0 0 0 var(--ink);
+      }
+      .btn:disabled {
+        opacity: 0.38;
+        box-shadow: none;
+      }
+      .btn.go {
+        background: var(--accent);
+      }
+      .btn.go:hover:not(:disabled) {
+        background: #ff8e55;
+      }
+      .btn.warn {
+        color: var(--bad);
+      }
+      .btn.small {
+        padding: 2px 10px;
+        font-size: 12px;
+      }
+
+      /* ---------- scenes ---------- */
+      .scenes {
+        height: 100%;
+        display: grid;
+        grid-template-columns: minmax(280px, 42%) minmax(0, 1fr);
+        gap: 26px;
+      }
+      .left {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 0;
+      }
+      .device {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: var(--ar, 1);
+        max-height: calc(100vh - 190px);
+        margin-inline: auto;
+        border: 2px solid var(--line);
+        box-shadow: 5px 5px 0 var(--ink);
+        background: repeating-conic-gradient(#e2d9c8 0 25%, #f1ebdf 0 50%) 0 0 / 16px 16px;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        flex: none;
+      }
+      .device .msg {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+        color: #cfc6e4;
+      }
+      .live {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink-2);
+        font-size: 12px;
+      }
+      .live i {
+        width: 8px;
+        height: 8px;
+        background: var(--ok);
+        border: 1.5px solid var(--ink);
+        flex: none;
+      }
+      .live.off i {
+        background: var(--soft);
+      }
+      .tip {
+        color: var(--ink-2);
+        font-size: 12px;
+        margin: 0;
+      }
+
+      .right {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .row-h {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .row-h h2 {
+        margin: 0;
+        font-size: 14px;
+        flex: 1;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        max-height: 156px;
+        overflow: auto;
+        padding: 12px 4px 6px 2px;
+        margin: -2px -4px -6px -2px;
+      }
+      .card {
+        position: relative;
+        text-align: left;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        padding: 9px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: default;
+        min-width: 0;
+      }
+      .card:hover {
+        background: #fff;
+      }
+      .card[aria-selected="true"] {
+        box-shadow: var(--shadow);
+        background: #fff;
+        transform: translate(-1px, -1px);
+      }
+      .card canvas {
+        width: 36px;
+        height: 36px;
+        image-rendering: pixelated;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        flex: none;
+        background: var(--soft);
+      }
+      .card .nm {
+        font-weight: 650;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .card .sub {
+        font-size: 11px;
+        color: var(--ink-2);
+      }
+      .badge {
+        position: absolute;
+        top: -9px;
+        right: 8px;
+        font: 700 10px/1 var(--mono);
+        letter-spacing: 0.06em;
+        background: var(--accent-2);
+        border: 2px solid var(--line);
+        border-radius: 99px;
+        padding: 3px 7px;
+      }
+
+      .panel {
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-height: 0;
+        flex: 1;
+        overflow: auto;
+      }
+      .field {
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding: 16px 10px;
-        box-sizing: border-box;
-        background: #16121c;
       }
-      nav button {
-        appearance: none;
-        border: 0;
+      .field > span {
+        font: 600 11px/1 var(--mono);
+        letter-spacing: 0.08em;
+        color: var(--ink-2);
+        text-transform: uppercase;
+      }
+      input[type="text"] {
+        border: 2px solid var(--line);
         border-radius: 8px;
-        background: #2c2438;
-        color: inherit;
-        font: inherit;
-        text-align: left;
-        padding: 8px 10px;
+        background: #fff;
+        padding: 6px 10px;
+        user-select: text;
+        -webkit-user-select: text;
       }
-      main {
+      input:disabled {
+        background: var(--soft);
+        color: var(--ink-2);
+      }
+      details {
+        border: 2px dashed var(--ink-2);
+        border-radius: 10px;
+        padding: 8px 12px;
+      }
+      details[open] {
+        border-style: solid;
+        border-color: var(--line);
+      }
+      details[open] > summary {
+        margin-bottom: 8px;
+      }
+      summary {
+        font-weight: 600;
+        cursor: default;
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary::before {
+        content: "▸ ";
+        font-family: var(--mono);
+      }
+      details[open] > summary::before {
+        content: "▾ ";
+      }
+      textarea {
+        display: block;
+        height: clamp(160px, 34vh, 320px);
+        width: 100%;
+        resize: none;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: #1f1833;
+        color: #ece6ff;
+        padding: 9px 11px;
+        font: 12px/1.55 var(--mono);
+        white-space: pre;
+        tab-size: 2;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+      }
+      .status {
         flex: 1;
-        padding: 20px 18px;
-        line-height: 1.5;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--ink-2);
       }
-      h1 {
-        margin: 0 0 12px;
-        font-size: 18px;
+      .status.ok {
+        color: var(--ok);
+        font-weight: 600;
       }
-      p {
-        margin: 0 0 8px;
-        opacity: 0.8;
+      .status.err {
+        color: var(--bad);
+        font-weight: 600;
+      }
+
+      /* ---------- about ---------- */
+      .about {
+        max-width: 640px;
+        margin: 0 auto;
+        display: grid;
+        gap: 16px;
+      }
+      .tile {
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+        padding: 14px 18px;
+        box-shadow: var(--shadow);
+      }
+      .tile h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+      }
+      .tile p,
+      .tile li {
+        margin: 0 0 4px;
+        color: var(--ink-2);
+      }
+      .tile ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .tile.warn {
+        background: #fff1d9;
+      }
+      .tile.warn p {
+        color: var(--ink);
+      }
+      code {
+        font: 12px var(--mono);
+        background: var(--soft);
+        border-radius: 4px;
+        padding: 1px 5px;
+        color: var(--ink);
+      }
+      .axes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .axes div {
+        border: 2px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        padding: 8px 12px;
+      }
+      .axes b {
+        display: block;
+        font: 700 11px var(--mono);
+        letter-spacing: 0.08em;
+        color: var(--accent);
       }
     </style>
   </head>
   <body>
-    <nav>
-      <button type="button" aria-pressed="true">场景</button>
-      <button type="button">关于</button>
-    </nav>
+    <header class="top">
+      <img class="logo" src="./assets/icon.png" alt="" aria-hidden="true" />
+      <h1>Nook<small>settings</small></h1>
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="t-scenes" aria-selected="true" data-i18n="tab.scenes"></button>
+        <button type="button" role="tab" id="t-about" aria-selected="false" data-i18n="tab.about"></button>
+      </div>
+    </header>
+
     <main>
-      <h1>场景</h1>
-      <p>M0 占位。M4 会在这里做场景名称 / HTML 的增删改与导入。</p>
-      <p>出厂 Home 将是正方形二维点控：X = 音量，Y = 亮度。</p>
+      <section class="scenes" id="p-scenes">
+        <div class="left">
+          <div class="device" id="device"><div class="msg" data-i18n="preview.pick"></div></div>
+          <div class="live off" id="live"><i></i><span id="live-t"></span></div>
+          <p class="tip" data-i18n="preview.tip"></p>
+        </div>
+
+        <div class="right">
+          <div class="row-h">
+            <h2 data-i18n="scenes.title"></h2>
+            <button type="button" class="btn small" id="b-import" data-i18n="scenes.import"></button>
+            <button type="button" class="btn small go" id="b-new" data-i18n="scenes.new"></button>
+          </div>
+          <div class="grid" id="grid" role="listbox" data-i18n-aria="scenes.list"></div>
+
+          <div class="panel" id="panel">
+            <label class="field">
+              <span data-i18n="field.name"></span>
+              <input type="text" id="name" maxlength="40" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="row-h">
+              <button type="button" class="btn go" id="b-use"></button>
+              <button type="button" class="btn" id="b-restore" data-i18n-title="btn.restore.tip" data-i18n="btn.restore"></button>
+            </div>
+            <details id="src">
+              <summary data-i18n="src.summary"></summary>
+              <textarea id="html" spellcheck="false" data-i18n-aria="src.aria"></textarea>
+            </details>
+            <div class="bar">
+              <div class="status" id="status" role="status"></div>
+              <button type="button" class="btn warn" id="b-del" data-i18n="btn.delete"></button>
+              <button type="button" class="btn" id="b-revert" data-i18n="btn.revert"></button>
+              <button type="button" class="btn go" id="b-save" data-i18n="btn.save"></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="about" id="p-about" hidden>
+        <div class="tile">
+          <h3 data-i18n="about.what.h"></h3>
+          <p data-i18n="about.what.p"></p>
+        </div>
+        <div class="axes">
+          <div data-i18n-html="about.x"></div>
+          <div data-i18n-html="about.y"></div>
+        </div>
+        <div class="tile">
+          <h3 data-i18n="lang.h"></h3>
+          <div class="row-h"><select id="lang" class="btn">
+            <option value="auto" data-i18n="lang.auto"></option>
+            <option value="zh">简体中文</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+          </select></div>
+        </div>
+        <div class="tile">
+          <h3 data-i18n="about.scenes.h"></h3>
+          <ul>
+            <li data-i18n-html="about.scenes.1"></li>
+            <li data-i18n="about.scenes.2"></li>
+            <li data-i18n="about.scenes.3"></li>
+          </ul>
+        </div>
+        <div class="tile warn">
+          <h3 data-i18n="about.warn.h"></h3>
+          <p data-i18n="about.warn.1"></p>
+          <p data-i18n="about.warn.2"></p>
+        </div>
+        <p class="tip" style="text-align: center" data-i18n="about.credit"></p>
+      </section>
     </main>
+
+    <script type="module">
+      import { Control, events } from "./mygo.js";
+      import { mountScene } from "./scene-host.js";
+      import { t, setLang, onLang, apply } from "./i18n.js";
+
+      const $ = (id) => document.getElementById(id);
+      const gridEl = $("grid");
+      const nameEl = $("name");
+      const htmlEl = $("html");
+      const srcEl = $("src");
+      const deviceEl = $("device");
+      const statusEl = $("status");
+      const liveEl = $("live");
+      const b = {
+        save: $("b-save"),
+        revert: $("b-revert"),
+        del: $("b-del"),
+        use: $("b-use"),
+        neu: $("b-new"),
+        imp: $("b-import"),
+        restore: $("b-restore"),
+      };
+
+      let scenes = [];
+      let selected = null; // { id, name, html, isHome }; id "" = unsaved new scene
+      let saved = { name: "", html: "" };
+      let pvTimer = 0;
+      let pvTicket = 0;
+      let stTimer = 0;
+
+      // ---------- little pixel icons, one per scene id
+      const PALETTE = ["#ff7b3a", "#ffd36b", "#6a80b4", "#7bd88f", "#c06bd6", "#e8546b"];
+      function hash(str) {
+        let h = 2166136261;
+        for (const ch of str) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+        return h;
+      }
+      function drawIcon(canvas, seed) {
+        const g = canvas.getContext("2d");
+        g.clearRect(0, 0, 8, 8);
+        let h = hash(seed || "new");
+        const rnd = () => ((h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0) / 4294967296);
+        const main = PALETTE[Math.floor(rnd() * PALETTE.length)];
+        const alt = PALETTE[Math.floor(rnd() * PALETTE.length)];
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 4; x++) {
+            const r = rnd();
+            if (r < 0.46) continue;
+            g.fillStyle = r < 0.8 ? main : alt;
+            g.fillRect(x, y, 1, 1);
+            g.fillRect(7 - x, y, 1, 1);
+          }
+        }
+      }
+
+      // ---------- tabs
+      function tab(name) {
+        for (const id of ["scenes", "about"]) {
+          $("p-" + id).hidden = id !== name;
+          $("t-" + id).setAttribute("aria-selected", String(id === name));
+        }
+      }
+      $("t-scenes").addEventListener("click", () => tab("scenes"));
+      $("t-about").addEventListener("click", () => tab("about"));
+
+      // ---------- state helpers
+      const errText = (e) => String((e && e.message) || e).replace(/^.*?: /, "");
+      const isDirty = () => !!selected && (nameEl.value !== saved.name || htmlEl.value !== saved.html);
+      function say(text, kind = "") {
+        clearTimeout(stTimer);
+        statusEl.textContent = text;
+        statusEl.className = "status " + kind;
+        if (kind === "ok") stTimer = setTimeout(() => say(isDirty() ? t("st.dirty") : ""), 2200);
+      }
+      function sync() {
+        const has = !!selected;
+        const isNew = has && selected.id === "";
+        const cur = has && (scenes.find((s) => s.id === selected.id) || {}).current === true;
+        b.save.disabled = !has || !isDirty();
+        b.revert.disabled = !has || isNew || !isDirty();
+        b.del.disabled = !has || isNew || selected.isHome;
+        b.use.disabled = !has || isNew || cur;
+        b.use.textContent = cur ? t("btn.using") : t("btn.use");
+        b.restore.disabled = !scenes.some((s) => s.isHome);
+        nameEl.disabled = !has || selected.isHome;
+        htmlEl.disabled = !has;
+        if (!/ok|err/.test(statusEl.className)) say(isDirty() ? t("st.dirty") : "");
+      }
+      const discardOK = () => !isDirty() || window.confirm(t("confirm.discard"));
+
+      // ---------- list
+      function renderGrid() {
+        gridEl.replaceChildren();
+        const rows = scenes.map((s) => ({ ...s }));
+        if (selected && selected.id === "") rows.push({ id: "", name: nameEl.value.trim() || t("scene.untitled"), isNew: true });
+        for (const s of rows) {
+          const card = document.createElement("button");
+          card.type = "button";
+          card.className = "card";
+          card.setAttribute("role", "option");
+          card.setAttribute("aria-selected", String(!!selected && selected.id === s.id));
+          const icon = document.createElement("canvas");
+          icon.width = icon.height = 8;
+          drawIcon(icon, s.id || "new");
+          const text = document.createElement("div");
+          text.style.minWidth = 0;
+          const nm = document.createElement("div");
+          nm.className = "nm";
+          nm.textContent = s.name;
+          const sub = document.createElement("div");
+          sub.className = "sub";
+          sub.textContent = s.isHome ? t("scene.factory") : s.isNew ? t("scene.unsaved") : t("scene.custom");
+          text.append(nm, sub);
+          card.append(icon, text);
+          if (s.current) {
+            const tag = document.createElement("span");
+            tag.className = "badge";
+            tag.textContent = t("scene.current");
+            card.appendChild(tag);
+          }
+          card.addEventListener("click", () => pick(s.id));
+          gridEl.appendChild(card);
+        }
+      }
+      async function loadList() {
+        scenes = await Control.listScenes();
+        renderGrid();
+        sync();
+      }
+      async function pick(id) {
+        if (selected && selected.id === id) return;
+        if (!discardOK()) return;
+        try {
+          if (id !== "") show(await Control.getScene(id));
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      }
+      function show(sc) {
+        selected = sc;
+        saved = { name: sc.name, html: sc.html };
+        nameEl.value = sc.name;
+        htmlEl.value = sc.html;
+        say("");
+        renderGrid();
+        sync();
+        preview(0);
+      }
+
+      // ---------- live preview at true size (no transform)
+      function preview(delay = 450) {
+        clearTimeout(pvTimer);
+        pvTimer = setTimeout(runPreview, delay);
+      }
+      function note(text) {
+        deviceEl.replaceChildren();
+        const m = document.createElement("div");
+        m.className = "msg";
+        m.textContent = text;
+        deviceEl.appendChild(m);
+        liveEl.classList.add("off");
+        $("live-t").textContent = t("preview.idle");
+      }
+      // A scene's own root decides its size; the frame takes that aspect ratio
+      // and the scene is scaled to fit the frame width.
+      let nat = { w: 360, h: 360 };
+      function fit() {
+        const h = deviceEl.querySelector("[data-scene]");
+        if (!h) return;
+        h.style.transform = `scale(${deviceEl.clientWidth / nat.w})`;
+      }
+      function measure() {
+        const h = deviceEl.querySelector("[data-scene]");
+        if (!h) return;
+        const w = h.scrollWidth || 360;
+        const ht = h.scrollHeight || 360;
+        if (w === nat.w && ht === nat.h) return;
+        nat = { w, h: ht };
+        deviceEl.style.setProperty("--ar", w + " / " + ht);
+        requestAnimationFrame(fit);
+      }
+      new ResizeObserver(fit).observe(deviceEl);
+      async function runPreview() {
+        const ticket = ++pvTicket;
+        if (!selected) return note(t("preview.pick"));
+        if (!htmlEl.value.trim()) return note(t("preview.empty"));
+        deviceEl.replaceChildren();
+        const host = document.createElement("div");
+        host.style.cssText = "position:absolute;left:0;top:0;width:max-content;height:max-content;transform-origin:0 0";
+        host.dataset.scene = "1";
+        deviceEl.appendChild(host);
+        fit();
+        liveEl.classList.remove("off");
+        $("live-t").textContent = t("preview.running", { name: nameEl.value.trim() || t("scene.untitled") });
+        try {
+          await mountScene(host, htmlEl.value, { Control, events });
+          if (ticket === pvTicket) {
+            measure();
+            new ResizeObserver(measure).observe(host);
+          }
+        } catch (e) {
+          if (ticket === pvTicket) note(t("preview.error", { msg: errText(e) }));
+        }
+      }
+
+      // ---------- editing
+      nameEl.addEventListener("input", () => {
+        if (selected && selected.id === "") renderGrid();
+        sync();
+      });
+      htmlEl.addEventListener("input", () => {
+        sync();
+        preview();
+      });
+      htmlEl.addEventListener("keydown", (e) => {
+        if (e.key !== "Tab") return;
+        e.preventDefault();
+        htmlEl.setRangeText("  ", htmlEl.selectionStart, htmlEl.selectionEnd, "end");
+        htmlEl.dispatchEvent(new Event("input"));
+      });
+      window.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          if (!b.save.disabled) b.save.click();
+        }
+      });
+
+      b.neu.addEventListener("click", () => {
+        if (!discardOK()) return;
+        tab("scenes");
+        show({
+          id: "",
+          name: "",
+          isHome: false,
+          html: '<div style="width:360px;height:360px;display:grid;place-items:center;color:#fff;font:600 22px system-ui">\n  <span id="v">…</span>\n</div>\n<script>\n  Control.getState().then((s) => {\n    document.getElementById("v").textContent = `${s.volume} · ${s.brightness}`;\n  });\n<\/script>\n',
+        });
+        srcEl.open = true;
+        nameEl.focus();
+      });
+      b.imp.addEventListener("click", async () => {
+        if (!discardOK()) return;
+        try {
+          const r = await Control.importHTML();
+          if (r.cancelled) return;
+          show({ id: "", name: r.name, html: r.html, isHome: false });
+          say(t("st.imported"));
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+      b.save.addEventListener("click", async () => {
+        if (!selected) return;
+        try {
+          const sc = await Control.saveScene(selected.id, nameEl.value, htmlEl.value);
+          selected = sc;
+          saved = { name: sc.name, html: sc.html };
+          nameEl.value = sc.name;
+          await loadList();
+          say(t("st.saved"), "ok");
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+      b.revert.addEventListener("click", () => {
+        nameEl.value = saved.name;
+        htmlEl.value = saved.html;
+        say("");
+        sync();
+        preview(0);
+      });
+      b.del.addEventListener("click", async () => {
+        if (!selected || selected.id === "" || selected.isHome) return;
+        if (!window.confirm(t("confirm.delete", { name: selected.name }))) return;
+        try {
+          await Control.deleteScene(selected.id);
+          selected = null;
+          await loadList();
+          show(await Control.getScene("home"));
+          say(t("st.deleted"), "ok");
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+      b.use.addEventListener("click", async () => {
+        if (!selected || selected.id === "") return;
+        try {
+          await Control.selectScene(selected.id);
+          await loadList();
+          say(t("st.used"), "ok");
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+      b.restore.addEventListener("click", async () => {
+        if (!window.confirm(t("confirm.restore"))) return;
+        try {
+          const sc = await Control.restoreHome();
+          await loadList();
+          show(sc);
+          say(t("st.restored"), "ok");
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+
+      events.scenesChanged.on(() => loadList().catch(() => {}));
+
+      const langSel = $("lang");
+      function applyLang(info) {
+        setLang(info.resolved);
+        langSel.value = info.setting;
+      }
+      onLang(() => {
+        renderGrid();
+        sync();
+        if (!document.querySelector("#device [data-scene]")) $("live-t").textContent = t("preview.idle");
+        else $("live-t").textContent = t("preview.running", { name: nameEl.value.trim() || t("scene.untitled") });
+      });
+      langSel.addEventListener("change", async () => {
+        try {
+          applyLang(await Control.setLang(langSel.value));
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      });
+      events.langChanged.on(applyLang);
+
+      (async () => {
+        try {
+          applyLang(await Control.getLang());
+          await loadList();
+          show(await Control.currentScene());
+        } catch (e) {
+          say(t("st.loadfail", { msg: errText(e) }), "err");
+        }
+      })();
+    </script>
   </body>
 </html>

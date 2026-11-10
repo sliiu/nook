@@ -1,0 +1,200 @@
+// Tiny i18n: dictionaries for zh / en / ja. Elements opt in with
+// data-i18n (text), data-i18n-html (trusted markup from this file),
+// data-i18n-title and data-i18n-aria.
+
+const dict = {
+  zh: {
+    "app.name": "Nook",
+    "tab.scenes": "场景",
+    "tab.about": "关于",
+    "preview.idle": "预览",
+    "preview.running": "运行中 · {name}",
+    "preview.pick": "选择一个场景",
+    "preview.empty": "HTML 为空",
+    "preview.error": "预览出错：{msg}",
+    "preview.tip": "预览是真实运行的场景：拖动会同步调节系统音量与亮度。",
+    "scenes.title": "我的场景",
+    "scenes.import": "导入…",
+    "scenes.new": "＋ 新建",
+    "scenes.list": "场景列表",
+    "scene.factory": "出厂",
+    "scene.custom": "自定义",
+    "scene.unsaved": "未保存",
+    "scene.current": "使用中",
+    "scene.untitled": "未命名",
+    "field.name": "名称",
+    "btn.use": "使用这个场景",
+    "btn.using": "正在使用",
+    "btn.restore": "恢复出厂 Home",
+    "btn.restore.tip": "把 Home 改回出厂版本",
+    "btn.delete": "删除",
+    "btn.revert": "还原",
+    "btn.save": "保存",
+    "src.summary": "源码（高级）",
+    "src.aria": "场景源码",
+    "st.dirty": "有未保存的修改",
+    "st.saved": "已保存",
+    "st.used": "浮层已切换到这个场景",
+    "st.deleted": "已删除",
+    "st.restored": "Home 已恢复出厂",
+    "st.imported": "已载入预览，点“保存”才会写入",
+    "st.loadfail": "无法读取场景：{msg}",
+    "confirm.discard": "放弃当前未保存的修改？",
+    "confirm.delete": "删除“{name}”？无法撤销。",
+    "confirm.restore": "把 Home 恢复成出厂版本？对 Home 的修改会丢失，并切回 Home。",
+    "about.what.h": "它是什么",
+    "about.what.p": "菜单栏里的一块像素小屋，用来调节输出音量和内建屏亮度。外部按键调节时，浮层会弹出约 1.6 秒。",
+    "about.x": "<b>X 轴</b>输出音量 0–100",
+    "about.y": "<b>Y 轴</b>内建屏亮度 0–100",
+    "about.scenes.h": "场景",
+    "about.scenes.1": "每个场景是单文件 HTML，使用全局 <code>Control</code> 与 <code>events</code>；浮层大小、圆角、背景都由场景自己决定。",
+    "about.scenes.2": "Home 永远在，可以改、不能删；“恢复出厂 Home”写回内置版本。",
+    "about.scenes.3": "导入只会载入预览，点“保存”才写入。",
+    "about.warn.h": "请留意",
+    "about.warn.1": "场景脚本与应用权限相同，可以调节系统音量和亮度。只导入你信任的文件。",
+    "about.warn.2": "亮度只支持内建屏，依赖 macOS 私有接口；不可用时纵轴仅作预览。",
+    "about.credit": "像素房间与透镜改编自 slider-resident · @Lattice_Node · MIT",
+    "lang.h": "语言",
+    "lang.auto": "跟随系统",
+    "new.name": "",
+  },
+  en: {
+    "app.name": "Nook",
+    "tab.scenes": "Scenes",
+    "tab.about": "About",
+    "preview.idle": "Preview",
+    "preview.running": "Running · {name}",
+    "preview.pick": "Pick a scene",
+    "preview.empty": "HTML is empty",
+    "preview.error": "Preview failed: {msg}",
+    "preview.tip": "The preview runs the real scene: dragging adjusts system volume and brightness.",
+    "scenes.title": "My scenes",
+    "scenes.import": "Import…",
+    "scenes.new": "+ New",
+    "scenes.list": "Scene list",
+    "scene.factory": "Built-in",
+    "scene.custom": "Custom",
+    "scene.unsaved": "Unsaved",
+    "scene.current": "IN USE",
+    "scene.untitled": "Untitled",
+    "field.name": "Name",
+    "btn.use": "Use this scene",
+    "btn.using": "In use",
+    "btn.restore": "Restore factory Home",
+    "btn.restore.tip": "Reset Home to the built-in version",
+    "btn.delete": "Delete",
+    "btn.revert": "Revert",
+    "btn.save": "Save",
+    "src.summary": "Source (advanced)",
+    "src.aria": "Scene source",
+    "st.dirty": "Unsaved changes",
+    "st.saved": "Saved",
+    "st.used": "The flyout now shows this scene",
+    "st.deleted": "Deleted",
+    "st.restored": "Home restored to factory",
+    "st.imported": "Loaded into the preview. Press Save to keep it.",
+    "st.loadfail": "Could not read scenes: {msg}",
+    "confirm.discard": "Discard unsaved changes?",
+    "confirm.delete": "Delete “{name}”? This cannot be undone.",
+    "confirm.restore": "Restore Home to the factory version? Your edits to Home will be lost and Home becomes the current scene.",
+    "about.what.h": "What it is",
+    "about.what.p": "A pixel room in your menu bar for output volume and built-in display brightness. When keys change them, the flyout pops up for about 1.6 s.",
+    "about.x": "<b>X axis</b>Output volume 0–100",
+    "about.y": "<b>Y axis</b>Built-in brightness 0–100",
+    "about.scenes.h": "Scenes",
+    "about.scenes.1": "A scene is a single HTML file using the globals <code>Control</code> and <code>events</code>. The flyout size, corners and background all come from the scene.",
+    "about.scenes.2": "Home always exists: you can edit it but not delete it. “Restore factory Home” writes the built-in one back.",
+    "about.scenes.3": "Import only loads the preview; nothing is written until you press Save.",
+    "about.warn.h": "Heads up",
+    "about.warn.1": "Scene scripts run with the app's permissions and can change system volume and brightness. Only import files you trust.",
+    "about.warn.2": "Brightness works on the built-in display only and uses a private macOS API; when unavailable, the Y axis is preview-only.",
+    "about.credit": "Pixel room and lens adapted from slider-resident · @Lattice_Node · MIT",
+    "lang.h": "Language",
+    "lang.auto": "System",
+  },
+  ja: {
+    "app.name": "Nook",
+    "tab.scenes": "シーン",
+    "tab.about": "このアプリについて",
+    "preview.idle": "プレビュー",
+    "preview.running": "実行中 · {name}",
+    "preview.pick": "シーンを選択",
+    "preview.empty": "HTML が空です",
+    "preview.error": "プレビューエラー：{msg}",
+    "preview.tip": "プレビューは実際に動作します。ドラッグするとシステムの音量と輝度が変わります。",
+    "scenes.title": "マイシーン",
+    "scenes.import": "読み込み…",
+    "scenes.new": "＋ 新規",
+    "scenes.list": "シーン一覧",
+    "scene.factory": "標準",
+    "scene.custom": "カスタム",
+    "scene.unsaved": "未保存",
+    "scene.current": "使用中",
+    "scene.untitled": "名称未設定",
+    "field.name": "名前",
+    "btn.use": "このシーンを使う",
+    "btn.using": "使用中",
+    "btn.restore": "Home を初期状態に戻す",
+    "btn.restore.tip": "Home を標準版に戻します",
+    "btn.delete": "削除",
+    "btn.revert": "元に戻す",
+    "btn.save": "保存",
+    "src.summary": "ソース（上級者向け）",
+    "src.aria": "シーンのソース",
+    "st.dirty": "未保存の変更があります",
+    "st.saved": "保存しました",
+    "st.used": "フライアウトをこのシーンに切り替えました",
+    "st.deleted": "削除しました",
+    "st.restored": "Home を初期状態に戻しました",
+    "st.imported": "プレビューに読み込みました。「保存」で確定します",
+    "st.loadfail": "シーンを読み込めません：{msg}",
+    "confirm.discard": "未保存の変更を破棄しますか？",
+    "confirm.delete": "「{name}」を削除しますか？元に戻せません。",
+    "confirm.restore": "Home を初期状態に戻しますか？Home への変更は失われ、Home に切り替わります。",
+    "about.what.h": "Nook とは",
+    "about.what.p": "メニューバーに住むピクセルの小部屋。出力音量と内蔵ディスプレイの輝度を調整します。キーで変更するとフライアウトが約 1.6 秒表示されます。",
+    "about.x": "<b>X 軸</b>出力音量 0–100",
+    "about.y": "<b>Y 軸</b>内蔵ディスプレイの輝度 0–100",
+    "about.scenes.h": "シーン",
+    "about.scenes.1": "シーンは単一の HTML ファイルで、グローバルの <code>Control</code> と <code>events</code> を使います。フライアウトのサイズ・角丸・背景はシーン側で決まります。",
+    "about.scenes.2": "Home は常に存在し、編集はできますが削除はできません。「Home を初期状態に戻す」で標準版に戻せます。",
+    "about.scenes.3": "読み込みはプレビューのみ。「保存」するまで書き込まれません。",
+    "about.warn.h": "ご注意",
+    "about.warn.1": "シーンのスクリプトはアプリと同じ権限で動作し、音量と輝度を変更できます。信頼できるファイルだけ読み込んでください。",
+    "about.warn.2": "輝度は内蔵ディスプレイのみ対応で、macOS の非公開 API を使います。利用できない場合、Y 軸はプレビュー専用です。",
+    "about.credit": "ピクセルルームとレンズは slider-resident を改変 · @Lattice_Node · MIT",
+    "lang.h": "言語",
+    "lang.auto": "システムに合わせる",
+  },
+};
+
+let lang = "en";
+const listeners = new Set();
+
+export function t(key, vars) {
+  let s = (dict[lang] && dict[lang][key]) ?? dict.en[key] ?? key;
+  if (vars) for (const k of Object.keys(vars)) s = s.replaceAll("{" + k + "}", vars[k]);
+  return s;
+}
+
+export function getLang() {
+  return lang;
+}
+
+export function setLang(l) {
+  lang = dict[l] ? l : "en";
+  document.documentElement.lang = lang;
+  apply();
+  for (const fn of listeners) fn(lang);
+}
+
+export function onLang(fn) {
+  listeners.add(fn);
+}
+
+export function apply(root = document) {
+  for (const el of root.querySelectorAll("[data-i18n]")) el.textContent = t(el.dataset.i18n);
+  for (const el of root.querySelectorAll("[data-i18n-html]")) el.innerHTML = t(el.dataset.i18nHtml);
+  for (const el of root.querySelectorAll("[data-i18n-title]")) el.title = t(el.dataset.i18nTitle);
+  for (const el of root.querySelectorAll("[data-i18n-aria]")) el.setAttribute("aria-label", t(el.dataset.i18nAria));
+}

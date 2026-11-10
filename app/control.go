@@ -7,6 +7,8 @@ import (
 
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
+	"pixel-control-center/internal/prefs"
+	"pixel-control-center/internal/scenes"
 )
 
 const (
@@ -53,6 +55,11 @@ type Control struct {
 	dragging   bool
 	hideAt     time.Time
 	hiding     bool
+	scenes     *scenes.Store
+	onScenes   func()
+	onSize     func(w, h int)
+	prefs      *prefs.Store
+	onLang     func()
 }
 
 // NewControl wires backends and the tray shell. brightness may be nil; then
@@ -204,7 +211,15 @@ func (c *Control) NoteIdle() {
 }
 
 // Watch polls volume and brightness until stop is closed.
-func (c *Control) Watch(stop <-chan struct{}) {
+// Package-level so mygo.Bind does not expose a channel-typed method.
+func Watch(c *Control, stop <-chan struct{}) {
+	if c == nil {
+		return
+	}
+	c.watch(stop)
+}
+
+func (c *Control) watch(stop <-chan struct{}) {
 	ticker := time.NewTicker(pollEvery)
 	defer ticker.Stop()
 	for {

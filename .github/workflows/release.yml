@@ -1,0 +1,30 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build .app and .dmg
+        env:
+          CGO_ENABLED: "1"
+        run: go tool mygo build
+      - name: Locate dmg
+        run: |
+          ls -R dist | head -30
+          echo "DMG=$(find dist -name '*.dmg' | head -1)" >> "$GITHUB_ENV"
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DMG }}
+          generate_release_notes: true
