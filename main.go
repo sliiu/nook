@@ -1,8 +1,9 @@
 // Pixel Control Center — menu-bar shell.
 //
-// Left click toggles the flyout under the status item. Right click opens
-// the scene menu (stub in M0) and Settings. Closing the flyout or the
-// settings window must not quit the app.
+// Left click toggles the full flyout under the status item. Right click opens
+// the scene menu (stub until M4) and Settings. External volume changes open
+// the short flyout for ~1.6s. Closing the flyout or the settings window must
+// not quit the app.
 package main
 
 import (
@@ -10,8 +11,12 @@ import (
 	"io/fs"
 	"log"
 	"runtime"
+	"sync"
 
 	"github.com/egoist/mygo"
+
+	"pixel-control-center/app"
+	"pixel-control-center/internal/audio"
 )
 
 //go:embed all:frontend
@@ -29,9 +34,37 @@ var (
 	tray           *mygo.Tray
 	panel          *mygo.Window
 	settingsWindow *mygo.Window
+	bridge         *app.Control
+	watcher        chan struct{}
+	shellMu        sync.Mutex
+	shellForm      = "hidden"
 )
 
-func showFlyout() {
+// trayShell adapts the package-level flyout to app.Shell.
+type trayShell struct{}
+
+func (trayShell) ShowFull()  { showFlyout("full") }
+func (trayShell) ShowShort() { showFlyout("short") }
+func (trayShell) Hide()      { hideFlyout() }
+func (trayShell) Form() string {
+	shellMu.Lock()
+	defer shellMu.Unlock()
+	return shellForm
+}
+func (trayShell) Panel() *mygo.Window { return panel }
+
+func setForm(form string) {
+	shellMu.Lock()
+	shellForm = form
+	shellMu.Unlock()
+}
+
+func showFlyout(form string) {
+	if form != "full" && form != "short" {
+		form = "short"
+	}
+	setForm(form)
+
 	if panel == nil {
 		panel = mygo.NewFlyout(mygo.FlyoutOptions{
 			Tray:      tray,
@@ -44,23 +77,37 @@ func showFlyout() {
 		})
 		panel.OnClosed(func() {
 			panel = nil
+			setForm("hidden")
 		})
-		return
+	} else if !panel.IsVisible() {
+		panel.SetSize(flyoutWidth, flyoutHeight)
+		panel.Show()
+	} else {
+		panel.SetSize(flyoutWidth, flyoutHeight)
 	}
-	if panel.IsVisible() {
+	app.PillForm.Emit(panel, app.FormPayload{Form: form})
+}
+
+func hideFlyout() {
+	setForm("hidden")
+	if panel != nil {
 		panel.Hide()
-		return
+		if panel != nil {
+			app.PillForm.Emit(panel, app.FormPayload{Form: "hidden"})
+		}
 	}
-	panel.SetSize(flyoutWidth, flyoutHeight)
-	panel.Show()
 }
 
 func toggleFlyout() {
-	if panel != nil && panel.IsVisible() {
-		panel.Hide()
-		return
+	shellMu.Lock()
+	form := shellForm
+	shellMu.Unlock()
+	switch form {
+	case "full":
+		hideFlyout()
+	default:
+		showFlyout("full")
 	}
-	showFlyout()
 }
 
 func openSettings() {
@@ -89,7 +136,7 @@ func openSettings() {
 
 func popupMenu() {
 	if panel != nil && panel.IsVisible() {
-		panel.Hide()
+		hideFlyout()
 	}
 	menu := mygo.NewMenu([]*mygo.MenuItem{
 		{Label: "Home", Type: mygo.MenuItemRadio, Checked: true},
@@ -123,6 +170,9 @@ func ready() {
 		tray.OnClick(toggleFlyout)
 		tray.OnRightClick(popupMenu)
 	}
+
+	watcher = make(chan struct{})
+	go bridge.Watch(watcher)
 }
 
 func main() {
@@ -132,10 +182,21 @@ func main() {
 	}
 	mygo.SetFrontend(web)
 
+	backend, err := audio.New()
+	if err != nil {
+		log.Fatal("output volume unavailable: ", err)
+	}
+	bridge = app.NewControl(backend, trayShell{})
+	mygo.Bind(bridge)
+
 	mygo.App.SetName("Pixel Control Center")
 	mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
 	mygo.App.OnWindowAllClosed(func() {})
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
+		if watcher != nil {
+			close(watcher)
+			watcher = nil
+		}
 		if tray != nil {
 			tray.Destroy()
 		}

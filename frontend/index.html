@@ -26,30 +26,149 @@
         border-radius: 28px;
         background: #241c30;
         box-shadow: 0 10px 28px rgb(20 12 28 / 0.45);
-        display: grid;
-        place-items: center;
-        text-align: center;
-        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 18px;
+        padding: 28px 32px;
       }
-      #scene-host h1 {
-        margin: 0 0 8px;
-        font-size: 18px;
+      h1 {
+        margin: 0;
+        font-size: 16px;
         font-weight: 600;
       }
-      #scene-host p {
+      .meta {
         margin: 0;
+        font-size: 12px;
+        opacity: 0.7;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .row label {
+        width: 36px;
+        font-size: 12px;
+        opacity: 0.85;
+      }
+      input[type="range"] {
+        flex: 1;
+        accent-color: #c9a0ff;
+      }
+      #level {
+        width: 36px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
         font-size: 13px;
-        opacity: 0.72;
-        line-height: 1.45;
+      }
+      #form-pill {
+        align-self: flex-start;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 0.08);
+      }
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 10px;
+        padding: 8px 12px;
+        background: rgb(255 255 255 / 0.1);
+        color: inherit;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      button[aria-pressed="true"] {
+        background: #c9a0ff;
+        color: #1c1724;
       }
     </style>
   </head>
   <body>
     <div id="scene-host">
+      <div id="form-pill">full</div>
       <div>
-        <h1>Pixel Control Center</h1>
-        <p>M0 骨架。稍后在这里挂上二维点控场景。</p>
+        <h1>输出音量</h1>
+        <p class="meta">M1 临时滑条。M3 换成二维点控 Home。</p>
       </div>
+      <div class="row">
+        <label for="volume">Vol</label>
+        <input id="volume" type="range" min="0" max="100" value="0" />
+        <span id="level">0</span>
+      </div>
+      <button id="mute" type="button" aria-pressed="false">静音</button>
     </div>
+    <script type="module">
+      import { Control, events } from "./mygo.js";
+
+      const slider = document.getElementById("volume");
+      const levelEl = document.getElementById("level");
+      const muteBtn = document.getElementById("mute");
+      const formPill = document.getElementById("form-pill");
+
+      let adjustable = true;
+      let dragging = false;
+
+      function paint(level, muted) {
+        slider.value = String(level);
+        levelEl.textContent = String(level);
+        muteBtn.setAttribute("aria-pressed", muted ? "true" : "false");
+        muteBtn.textContent = muted ? "已静音" : "静音";
+      }
+
+      async function refresh() {
+        const row = await Control.getVolume();
+        adjustable = row.adjustable;
+        slider.disabled = !adjustable;
+        muteBtn.disabled = !adjustable;
+        paint(row.level, row.muted);
+      }
+
+      slider.addEventListener("pointerdown", () => {
+        dragging = true;
+        Control.noteDrag(true);
+      });
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        Control.noteDrag(false);
+        Control.noteIdle();
+      };
+      slider.addEventListener("pointerup", endDrag);
+      slider.addEventListener("pointercancel", endDrag);
+
+      slider.addEventListener("input", async () => {
+        const level = Number(slider.value);
+        levelEl.textContent = String(level);
+        await Control.setVolume(level);
+      });
+
+      muteBtn.addEventListener("click", async () => {
+        const muted = muteBtn.getAttribute("aria-pressed") !== "true";
+        await Control.setMute(muted);
+        await refresh();
+      });
+
+      events.stateChanged.on((change) => {
+        if (dragging) return;
+        if (change.source !== "external") return;
+        if (typeof change.volume === "number") {
+          paint(change.volume, change.volume === 0);
+        }
+      });
+
+      events.pillForm.on((payload) => {
+        formPill.textContent = payload.form || "?";
+      });
+
+      refresh().catch((err) => {
+        levelEl.textContent = "!";
+        console.error(err);
+      });
+    </script>
   </body>
 </html>
