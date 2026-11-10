@@ -1,17 +1,17 @@
-// Package audio reads and writes the default output volume.
+// Package audio reads and writes default-device volume.
+// New is the default output. NewInput is the default input, the microphone.
 package audio
 
-// Level is the default output reading. A muted device reads as Percent 0
-// with Muted true. Adjustable is false when the device has no volume knob;
-// Set and SetMute then change nothing.
+// Level is one default device. A muted device reads as Percent 0 with Muted
+// true. Adjustable is false when the device has no volume knob; Set and
+// SetMute then change nothing.
 type Level struct {
 	Percent    int
 	Muted      bool
 	Adjustable bool
 }
 
-// Backend talks to the platform volume API. Implementations are
-// constructed with New.
+// Backend talks to one default device. New and NewInput each return one.
 type Backend interface {
 	Level() (Level, error)
 	Set(percent int) error

@@ -23,3 +23,9 @@ func (stub) SetMute(bool) error { return nil }
 func (stub) DefaultKey() (*uint64, error) {
 	return nil, errors.New("audio: no default device on this platform")
 }
+
+// NewInput reports that microphone volume is not implemented here. A nil
+// backend is an unavailable control, not a fake level of 0.
+func NewInput() (Backend, error) {
+	return nil, errors.New("audio: input volume is not implemented on this platform")
+}

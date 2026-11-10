@@ -263,7 +263,27 @@ func ready() {
 	go app.Watch(bridge, watcher)
 }
 
+// openSceneLink installs the catalog scene a nook:// link names, then shows
+// it in Settings. The fetch runs off the main thread.
+func openSceneLink(link string) {
+	go func() {
+		if _, err := bridge.InstallFromLink(link); err != nil {
+			log.Printf("scene link: %v", err)
+			return
+		}
+		openSettings()
+	}()
+}
+
 func main() {
+	if !mygo.App.RequestSingleInstanceLock() {
+		return
+	}
+	mygo.App.OnOpenURL(openSceneLink)
+	if err := mygo.App.RegisterURLScheme("nook"); err != nil {
+		log.Printf("nook: url scheme: %v", err)
+	}
+
 	web, err := fs.Sub(frontendFS, "frontend")
 	if err != nil {
 		log.Fatal(err)

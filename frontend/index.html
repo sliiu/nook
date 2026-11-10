@@ -42,7 +42,7 @@
     </div>
     <script type="module">
       import { Control, events } from "./mygo.js";
-      import { mountScene, mountSceneURL } from "./scene-host.js";
+      import { mountMarketScene, mountScene, mountSceneURL } from "./scene-host.js";
 
       const host = document.getElementById("scene-host");
       const api = { Control, events };
@@ -64,7 +64,8 @@
         try {
           const scene = await Control.currentScene();
           if (ticket !== loading) return;
-          await mountScene(host, scene.html, api);
+          if (scene.marketId) mountMarketScene(host, scene.html, api);
+          else await mountScene(host, scene.html, api);
         } catch (err) {
           if (ticket !== loading) return;
           console.error(err);

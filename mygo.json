@@ -6,5 +6,6 @@
   "icon": "resources/icon.png",
   "frontendDist": "frontend",
   "bindings": "mygo.ts",
+  "urlSchemes": ["nook"],
   "out": "dist"
 }
