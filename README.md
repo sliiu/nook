@@ -10,6 +10,8 @@ M3：出厂二维点控 Home（X=音量，Y=亮度，4×4 态）+ `scene-host`�
 
 从 [Releases](https://github.com/sliiu/nook/releases) 下载最新的 `.dmg`，拖入「应用程序」。应用未签名/公证，首次打开请右键 → 打开。
 
+> 仅在 **Apple Silicon（arm64）+ macOS 26.6.2** 上测试过。其他芯片、系统版本未经验证，遇到问题欢迎提 issue。
+
 ## 开发
 
 需要 Go 1.27.3+，macOS 上构建需 `CGO_ENABLED=1`。
@@ -17,7 +19,7 @@ M3：出厂二维点控 Home（X=音量，Y=亮度，4×4 态）+ `scene-host`�
 ```bash
 go mod tidy
 CGO_ENABLED=1 go build -o pixel-control-center .
-CGO_ENABLED=1 go tool mygo build   # 产出 dist 下的 .app（若已装 mygo CLI）
+CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build   # 产出 dist 下的 .app 与 .dmg
 ```
 
 ## 信任与风险

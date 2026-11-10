@@ -2417,6 +2417,77 @@ void main() {
     } else if (!sendTimer) sendTimer = setTimeout(flush, 33);
   };
 
+  // ---------------------------------------------------------------- sound
+  // Web Audio synthesis, no assets. One soft blip per volume step while
+  // dragging; gain and brightness of the tone follow the volume, so the
+  // sound gets louder and sharper the higher you drag.
+  let actx = null;
+  let soundOn = true; // a scene may switch this off; see Sound.off
+  const Sound = (() => {
+    const tone = (level01) => {
+      if (!soundOn) return;
+      // A bad level must not corrupt AudioParam scheduling (it throws on NaN).
+      if (!Number.isFinite(level01)) return;
+      try {
+        if (!actx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          actx = new AC();
+        }
+        if (actx.state === "suspended") actx.resume();
+        const t = actx.currentTime;
+        const now = actx.currentTime;
+        const v = clamp(level01);
+        // Louder + brighter with volume: gain 0.02→0.16, lowpass 900→7000 Hz.
+        const gain = 0.02 + v * 0.14;
+        const cut = 900 + v * 6100;
+        const osc = actx.createOscillator();
+        const lp = actx.createBiquadFilter();
+        const amp = actx.createGain();
+        osc.type = v > 0.75 ? "triangle" : "sine";
+        osc.frequency.setValueAtTime(320 + v * 520, t);
+        lp.type = "lowpass";
+        lp.frequency.setValueAtTime(cut, t);
+        lp.Q.value = 0.7;
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(gain, t + 0.004);
+        amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.07 + v * 0.05);
+        osc.connect(lp);
+        lp.connect(amp);
+        amp.connect(actx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16 + v * 0.05);
+        osc.onended = () => {
+          osc.disconnect();
+          lp.disconnect();
+          amp.disconnect();
+        };
+      } catch (err) {
+        // Audio is decoration; never let it break the control.
+        console.error(err);
+      }
+    };
+    let lastAt = 0;
+    // A WebView keeps audio locked until a real gesture; the first blip
+    // happens inside a pointerdown handler, so creating the context there
+    // is enough and calling resume() on a fresh context is harmless.
+    return {
+      // One blip when the volume lands on a new value; a fast drag would
+      // otherwise turn into a buzz, so keep a floor between blips.
+      step(level) {
+        const now = performance.now();
+        if (now - lastAt < 45) return;
+        lastAt = now;
+        tone(level);
+      },
+      // A muted click when the drag starts, at the current level.
+      press: (level) => tone(clamp(level) * 0.6),
+      off() {
+        soundOn = false;
+      },
+    };
+  })();
+
   const paintHud = () => {
     readoutEl.textContent = `音量 ${value} · 亮度 ${bright}${briAvailable ? "" : "（预览）"}`;
     pad.setAttribute("aria-label", `二维点控。${describe()}`);
@@ -2425,10 +2496,15 @@ void main() {
     const nv = Math.round(clamp(vol, 0, 100));
     const nb2 = LOCK_Y_WHEN_UNAVAILABLE && !briAvailable ? bright : Math.round(clamp(bri, 0, 100));
     if (nv === value && nb2 === bright) return;
+    const volMoved = nv !== value;
     value = nv;
     bright = nb2;
     paintHud();
-    if (fromUI) queueSend(false);
+    if (fromUI) {
+      // The pad sings: each new volume step blips, louder as it climbs.
+      if (volMoved) Sound.step(value / 100);
+      queueSend(false);
+    }
     touch();
   };
 
@@ -2450,6 +2526,7 @@ void main() {
     pad.setPointerCapture(e.pointerId);
     liftTarget = 1;
     safe(ctl()?.noteDrag(true));
+    Sound.press(value / 100);
     fromPointer(e.clientX, e.clientY);
     touch();
   });
