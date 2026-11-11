@@ -44,6 +44,8 @@ func TestCheckRefuses(t *testing.T) {
 		"websocket":      "<script>new WebSocket('wss://x')</script>",
 		"xhr":            "<script>new XMLHttpRequest()</script>",
 		"parent frame":   "<script>parent.Control</script>",
+		"parent index":   "<script>parent['Control']</script>",
+		"window top":     "<script>window.top.location</script>",
 		"top frame":      "<script>top.location</script>",
 	}
 	for name, html := range cases {
@@ -61,11 +63,21 @@ func TestCheckRefuses(t *testing.T) {
 	if _, err := Check("night", commit, []byte(other), page); !errors.Is(err, ErrMismatch) {
 		t.Errorf("id mismatch: %v", err)
 	}
+
+	with := strings.TrimRight(meta(), "}") + `,"preview":"preview.png","author":"Ada"}`
+	if _, err := Check("night", commit, []byte(with), page); err != nil {
+		t.Errorf("preview and author: %v", err)
+	}
+	remote := strings.TrimRight(meta(), "}") + `,"preview":"https://evil/a.png"}`
+	if _, err := Check("night", commit, []byte(remote), page); !errors.Is(err, ErrMeta) {
+		t.Errorf("remote preview: %v", err)
+	}
 }
 
 func TestCheckAllowsWordsInsideIdentifiers(t *testing.T) {
-	html := page // contains "desktop" and "textContent"
-	if _, err := Check("night", commit, []byte(meta()), html); err != nil {
+	html := page + "<style>body{top:0}</style><script>const top = rect.top; self.desktop = 1</script>" // contains "desktop" and "textContent"
+	raw := strings.Replace(meta(), scenes.HTMLHash(page), scenes.HTMLHash(html), 1)
+	if _, err := Check("night", commit, []byte(raw), html); err != nil {
 		t.Fatal(err)
 	}
 }

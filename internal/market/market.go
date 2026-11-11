@@ -55,13 +55,17 @@ var (
 // boundary that holds when the text scan misses something.
 var callNames = []string{"eval", "fetch", "import", "WebSocket", "XMLHttpRequest"}
 
-// Listing is one scene's scene.json.
+// Listing is one scene's scene.json. Preview and Author are optional.
+// Preview is the file preview.png beside the page; the catalog site shows it.
+// The app never fetches it.
 type Listing struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Description string `json:"description"`
 	HTMLSHA256  string `json:"htmlSha256"`
+	Preview     string `json:"preview,omitempty"`
+	Author      string `json:"author,omitempty"`
 }
 
 // Scene is a catalog page that passed every check.
@@ -154,6 +158,12 @@ func Check(id, commit string, metaRaw []byte, html string) (Scene, error) {
 	if meta.Version == "" || len(meta.Version) > 32 || strings.TrimSpace(html) == "" {
 		return Scene{}, ErrMeta
 	}
+	if meta.Preview != "" && meta.Preview != "preview.png" {
+		return Scene{}, ErrMeta
+	}
+	if utf8Len(meta.Author) > 40 {
+		return Scene{}, ErrMeta
+	}
 	if scriptSrc.MatchString(html) || linkHref.MatchString(html) || remoteImg.MatchString(html) || unsafeScript(html) {
 		return Scene{}, ErrMismatch
 	}
@@ -175,11 +185,30 @@ func unsafeScript(html string) bool {
 			return true
 		}
 	}
-	return identUsed(html, "parent") || identUsed(html, "top")
+	return frameWalk(html, "parent") || frameWalk(html, "top")
+}
+
+// frameWalk reports name used as a window: name.prop, name[...], or
+// window.name, self.name, globalThis.name. A CSS property, a local binding
+// and rect.top are not walks.
+func frameWalk(s, name string) bool {
+	if hasFollower(s, name, ".", "[") {
+		return true
+	}
+	for _, obj := range []string{"window", "self", "globalThis"} {
+		if hasProp(s, obj, name) {
+			return true
+		}
+	}
+	return false
 }
 
 // hasCall reports name followed by an opening paren, ignoring whitespace.
 func hasCall(s, name string) bool {
+	return hasFollower(s, name, "(")
+}
+
+func hasFollower(s, name string, followers ...string) bool {
 	for from := 0; ; {
 		at := strings.Index(s[from:], name)
 		if at < 0 {
@@ -188,25 +217,39 @@ func hasCall(s, name string) bool {
 		at += from
 		if bounded(s, at, at+len(name)) {
 			rest := strings.TrimLeftFunc(s[at+len(name):], unicode.IsSpace)
-			if strings.HasPrefix(rest, "(") {
-				return true
+			for _, follower := range followers {
+				if strings.HasPrefix(rest, follower) {
+					return true
+				}
 			}
 		}
 		from = at + len(name)
 	}
 }
 
-func identUsed(s, name string) bool {
+func hasProp(s, obj, name string) bool {
 	for from := 0; ; {
-		at := strings.Index(s[from:], name)
+		at := strings.Index(s[from:], obj)
 		if at < 0 {
 			return false
 		}
 		at += from
-		if bounded(s, at, at+len(name)) {
-			return true
+		if bounded(s, at, at+len(obj)) {
+			rest := strings.TrimLeftFunc(s[at+len(obj):], unicode.IsSpace)
+			if strings.HasPrefix(rest, ".") {
+				rest = strings.TrimLeftFunc(rest[1:], unicode.IsSpace)
+				if strings.HasPrefix(rest, name) && bounded(rest, 0, len(name)) {
+					return true
+				}
+			}
+			if strings.HasPrefix(rest, "[") {
+				rest = strings.TrimLeftFunc(rest[1:], unicode.IsSpace)
+				if strings.HasPrefix(rest, `"`+name+`"`) || strings.HasPrefix(rest, "'"+name+"'") {
+					return true
+				}
+			}
 		}
-		from = at + len(name)
+		from = at + len(obj)
 	}
 }
 
