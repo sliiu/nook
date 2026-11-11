@@ -1,6 +1,6 @@
 # ![Nook](.github/logo.png) Nook
 
-菜单栏里的一间像素小房间，调节输出音量和内建屏亮度。界面由 HTML 场景驱动。[English](README.md)
+菜单栏里的一间像素小房间，调节输出音量和内建屏亮度。界面由 HTML 场景驱动。页面在 [sliiu.github.io/nook](https://sliiu.github.io/nook/)。[English](README.md)
 
 在浮层上拖动：横向是音量，纵向是亮度。用键盘改变这两项时，浮层弹出约 1.6 秒。
 

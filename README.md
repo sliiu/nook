@@ -1,6 +1,6 @@
 # ![Nook](.github/logo.png) Nook
 
-A pixel room in your menu bar for output volume and built-in display brightness. The interface is an HTML scene. [中文](README.zh.md)
+A pixel room in your menu bar for output volume and built-in display brightness. The interface is an HTML scene. The page is at [sliiu.github.io/nook](https://sliiu.github.io/nook/). [中文](README.zh.md)
 
 Drag across the flyout: horizontal is volume, vertical is brightness. When keys change either, the flyout pops up for about 1.6 seconds.
 

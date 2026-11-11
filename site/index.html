@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nook</title>
+    <meta
+      name="description"
+      content="A pixel room in the menu bar for output volume and built-in display brightness."
+    />
+    <style>
+      :root {
+        --paper: #f1ebdf;
+        --card: #fbf7ef;
+        --ink: #231a3f;
+        --ink-2: #5d5478;
+        --line: #231a3f;
+        --accent: #ff7b3a;
+        --font: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.6 var(--font);
+      }
+      body {
+        background-image: radial-gradient(rgb(35 26 63 / 0.09) 1px, transparent 1.2px);
+        background-size: 14px 14px;
+        min-height: 100vh;
+      }
+      a {
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 3px solid #ffd36b;
+        outline-offset: 1px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 28px 28px 0;
+      }
+      .mark {
+        width: 34px;
+        height: 34px;
+        border: 2px solid var(--line);
+        border-radius: 8px;
+        background: var(--ink);
+        box-shadow: 2px 2px 0 var(--ink);
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3px;
+        padding: 6px;
+      }
+      .mark i {
+        background: var(--accent);
+      }
+      .mark i:nth-child(2) {
+        background: #ffd36b;
+      }
+      .mark i:nth-child(3) {
+        background: #6a80b4;
+      }
+      .mark i:nth-child(4) {
+        background: #7bd88f;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 19px;
+        flex: 1;
+      }
+      header h1 small {
+        display: block;
+        font: 11px/1.2 var(--mono);
+        color: var(--ink-2);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header nav {
+        display: flex;
+        gap: 8px;
+      }
+      header nav a {
+        border: 2px solid var(--line);
+        background: var(--card);
+        border-radius: 9px;
+        padding: 5px 13px;
+        font-weight: 600;
+        box-shadow: 2px 2px 0 var(--ink);
+        text-decoration: none;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 28px 28px 64px;
+      }
+      .hero {
+        max-width: 640px;
+        margin: 18px 0 28px;
+      }
+      .hero h2 {
+        margin: 0 0 8px;
+        font-size: 34px;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+      .hero p {
+        margin: 0 0 18px;
+        color: var(--ink-2);
+      }
+      .hero p b {
+        color: var(--ink);
+      }
+      .download {
+        display: inline-block;
+        border: 2px solid var(--line);
+        background: var(--accent);
+        border-radius: 10px;
+        padding: 9px 18px;
+        font: inherit;
+        font-weight: 700;
+        color: var(--ink);
+        box-shadow: 3px 3px 0 var(--ink);
+        text-decoration: none;
+      }
+      .download:hover {
+        background: #ff8e55;
+      }
+      .download:active {
+        transform: translate(3px, 3px);
+        box-shadow: 0 0 0 var(--ink);
+      }
+      .fine {
+        margin: 10px 0 0;
+        color: var(--ink-2);
+        font-size: 12px;
+      }
+      h3 {
+        margin: 36px 0 6px;
+        font-size: 18px;
+      }
+      .section p {
+        margin: 0 0 16px;
+        color: var(--ink-2);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 22px;
+      }
+      .card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        box-shadow: 5px 5px 0 var(--ink);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .shot {
+        aspect-ratio: 16 / 10;
+        background: repeating-conic-gradient(#e2d9c8 0 25%, #f1ebdf 0 50%) 0 0 / 16px 16px;
+        border-bottom: 2px solid var(--line);
+        display: grid;
+        place-items: center;
+      }
+      .shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        image-rendering: pixelated;
+      }
+      .shot span {
+        color: var(--ink-2);
+        font: 12px var(--mono);
+      }
+      .body {
+        padding: 14px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        flex: 1;
+      }
+      .body h4 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .meta {
+        margin: 0;
+        color: var(--ink-2);
+        font: 12px var(--mono);
+      }
+      .body p {
+        margin: 0;
+        flex: 1;
+      }
+      .install {
+        align-self: flex-start;
+        margin-top: 6px;
+        border: 2px solid var(--line);
+        background: var(--card);
+        border-radius: 9px;
+        padding: 5px 14px;
+        font: inherit;
+        font-weight: 700;
+        color: var(--ink);
+        box-shadow: 2px 2px 0 var(--ink);
+        text-decoration: none;
+      }
+      .install:hover {
+        background: #fff;
+      }
+      .install:active {
+        transform: translate(2px, 2px);
+        box-shadow: 0 0 0 var(--ink);
+      }
+      .empty {
+        border: 2px dashed var(--line);
+        border-radius: 12px;
+        padding: 28px;
+        text-align: center;
+        color: var(--ink-2);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <h1>Nook<small>menu bar</small></h1>
+      <nav>
+        <a href="https://github.com/sliiu/nook">GitHub</a>
+        <a href="https://github.com/sliiu/nook-scenes">Scenes</a>
+      </nav>
+    </header>
+    <main>
+      <div class="hero">
+        <h2>菜单栏里的一间像素小房间。<br />A pixel room in your menu bar.</h2>
+        <p>
+          横向拖动调输出音量，纵向拖动调内建屏亮度。用键盘改变这两项时，浮层弹出约 1.6 秒。<br />
+          <b>Drag across for volume, down for brightness.</b> When keys change either, the flyout pops up for about 1.6 seconds.
+        </p>
+        <a class="download" id="download" href="https://github.com/sliiu/nook/releases/latest">下载 .dmg · Download</a>
+        <p class="fine" id="version"></p>
+      </div>
+
+      <div class="section">
+        <h3>场景 · Scenes</h3>
+        <p>
+          已上架的场景。点「安装」会打开 Nook，按合并后的内容核对哈希并安装。<br />
+          <b>Scenes that have been merged.</b> Install opens Nook, which checks the hash and installs the merged page.
+        </p>
+        <div class="grid" id="grid"><div class="empty">读取清单…</div></div>
+        <p class="fine">
+          提交自己的场景看 <a href="https://github.com/sliiu/nook-scenes">nook-scenes</a>。
+          Submit a scene through <a href="https://github.com/sliiu/nook-scenes">nook-scenes</a>.
+        </p>
+      </div>
+    </main>
+    <script>
+      const CATALOG = "sliiu/nook-scenes";
+      const grid = document.getElementById("grid");
+
+      function text(value) {
+        return document.createTextNode(value == null ? "" : String(value));
+      }
+
+      function card(scene) {
+        const box = document.createElement("article");
+        box.className = "card";
+
+        const shot = document.createElement("div");
+        shot.className = "shot";
+        if (scene.preview) {
+          const img = document.createElement("img");
+          img.alt = "";
+          img.src =
+            "https://raw.githubusercontent.com/" + CATALOG + "/main/" + scene.preview;
+          shot.appendChild(img);
+        } else {
+          const miss = document.createElement("span");
+          miss.appendChild(text("没有预览"));
+          shot.appendChild(miss);
+        }
+
+        const body = document.createElement("div");
+        body.className = "body";
+        const title = document.createElement("h4");
+        title.appendChild(text(scene.name || scene.id));
+        const meta = document.createElement("p");
+        meta.className = "meta";
+        meta.appendChild(text([scene.author || "匿名", scene.version].filter(Boolean).join(" · ")));
+        const desc = document.createElement("p");
+        desc.appendChild(text(scene.description || ""));
+        const link = document.createElement("a");
+        link.className = "install";
+        link.href = "nook://scene/" + scene.id;
+        link.appendChild(text("安装 · Install"));
+        body.append(title, meta, desc, link);
+        box.append(shot, body);
+        return box;
+      }
+
+      function empty(message) {
+        grid.replaceChildren();
+        const box = document.createElement("div");
+        box.className = "empty";
+        box.appendChild(text(message));
+        grid.appendChild(box);
+      }
+
+      // Replaced at deploy with the scene ids found in the nook-scenes checkout.
+      // The page never asks api.github.com, which answers 403 once an IP has
+      // spent its 60 unauthenticated requests an hour.
+      const LISTING = /* LISTING */ null /* /LISTING */;
+
+      async function loadScenes() {
+        const ids = LISTING;
+        if (!ids) return empty("清单读不到，稍后再试");
+        if (!ids.length) return empty("还没有上架的场景");
+        const scenes = [];
+        await Promise.all(
+          ids.map(async (id) => {
+            const res = await fetch(
+              "https://raw.githubusercontent.com/" + CATALOG + "/main/" + id + "/scene.json",
+            );
+            if (!res.ok) return;
+            const meta = await res.json();
+            if (!meta || meta.id !== id) return;
+            scenes.push({
+              id: meta.id,
+              name: meta.name,
+              version: meta.version,
+              description: meta.description,
+              author: meta.author,
+              preview: meta.preview === "preview.png" ? id + "/preview.png" : "",
+            });
+          }),
+        );
+        scenes.sort((a, b) => a.id.localeCompare(b.id));
+        if (!scenes.length) return empty("还没有上架的场景");
+        grid.replaceChildren(...scenes.map(card));
+      }
+
+      // Replaced at deploy with the latest release: { tag, dmg }. The page
+      // never asks api.github.com, for the same reason as LISTING.
+      const RELEASE = /* RELEASE */ null /* /RELEASE */;
+
+      function loadRelease() {
+        const version = document.getElementById("version");
+        if (RELEASE && RELEASE.dmg) document.getElementById("download").href = RELEASE.dmg;
+        version.appendChild(
+          text(((RELEASE && RELEASE.tag) || "") + " · 未签名，首次打开请右键 → 打开"),
+        );
+        version.appendChild(document.createElement("br"));
+        version.appendChild(text("Not signed. On first launch, right-click and choose Open."));
+      }
+
+      loadScenes().catch(() => empty("清单读不到，稍后再试"));
+      loadRelease();
+    </script>
+  </body>
+</html>
