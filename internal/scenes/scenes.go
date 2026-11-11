@@ -295,7 +295,10 @@ func (s *Store) RestoreHome() (Scene, error) {
 	return s.data.Scenes[i], s.save()
 }
 
-var marketIDRe = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$`)
+var (
+	marketIDRe = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$`)
+	versionRe  = regexp.MustCompile(`^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$`)
+)
 
 func validMarket(m *Market) bool {
 	if m == nil || !marketIDRe.MatchString(m.ID) {
@@ -311,7 +314,7 @@ func validMarket(m *Market) bool {
 			}
 		}
 	}
-	if m.Version == "" || len(m.Version) > 32 {
+	if !versionRe.MatchString(m.Version) {
 		return false
 	}
 	return true
