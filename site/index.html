@@ -237,6 +237,44 @@
         text-align: center;
         color: var(--ink-2);
       }
+      .agent {
+        margin: 0 0 18px;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .agent summary {
+        cursor: pointer;
+        padding: 8px 14px;
+        font-weight: 700;
+      }
+      .agent pre {
+        margin: 0;
+        padding: 2px 14px 0;
+        white-space: pre-wrap;
+        font: 12.5px/1.55 var(--mono);
+      }
+      .copy {
+        display: inline-block;
+        margin: 10px 14px 14px;
+        border: 2px solid var(--line);
+        background: var(--card);
+        border-radius: 9px;
+        padding: 5px 14px;
+        font: inherit;
+        font-weight: 700;
+        color: var(--ink);
+        box-shadow: 2px 2px 0 var(--ink);
+        cursor: pointer;
+      }
+      .copy:hover {
+        background: #fff;
+      }
+      .copy:active {
+        transform: translate(2px, 2px);
+        box-shadow: 0 0 0 var(--ink);
+      }
     </style>
   </head>
   <body>
@@ -265,6 +303,11 @@
           已上架的场景。点「安装」会打开 Nook，按合并后的内容核对哈希并安装。<br />
           <b>Scenes that have been merged.</b> Install opens Nook, which checks the hash and installs the merged page.
         </p>
+        <details class="agent">
+          <summary>让 agent 来做 · Hand it to an agent</summary>
+          <pre id="prompt">Install the Nook scene skill by running `npx skills add sliiu/nook@nook-scene`, then follow it. Check this machine's system and architecture against the assets of the latest sliiu/nook release. Install the one that matches. If none matches, ask me whether to skip the install. Then design a scene with me, and once it passes the catalog check, open a pull request on sliiu/nook-scenes. Do not merge it.</pre>
+          <button class="copy" type="button" id="copy">复制 · Copy</button>
+        </details>
         <div class="grid" id="grid"><div class="empty">读取清单…</div></div>
         <p class="fine">
           提交自己的场景看 <a href="https://github.com/sliiu/nook-scenes">nook-scenes</a>。
@@ -377,6 +420,20 @@
 
       loadScenes().catch(() => empty("清单读不到，稍后再试"));
       loadRelease();
+
+      const copy = document.getElementById("copy");
+      copy.addEventListener("click", async () => {
+        const label = copy.textContent;
+        try {
+          await navigator.clipboard.writeText(document.getElementById("prompt").textContent);
+          copy.textContent = "已复制 · Copied";
+        } catch {
+          copy.textContent = "复制失败 · Copy failed";
+        }
+        setTimeout(() => {
+          copy.textContent = label;
+        }, 1600);
+      });
     </script>
   </body>
 </html>
