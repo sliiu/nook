@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -156,6 +157,33 @@ func (s *Store) nameTaken(name, exceptID string) bool {
 	return false
 }
 
+// freeName keeps a catalog scene's name when it is free, and appends " 2", " 3"
+// and so on when a local scene already has it. The catalog id is not a name
+// the user chose, so a clash must not stop the install. exceptMarket is the
+// catalog id being refreshed, whose own name stays available.
+func (s *Store) freeName(name, exceptMarket string) string {
+	exceptID := ""
+	for _, sc := range s.data.Scenes {
+		if sc.Market != nil && sc.Market.ID == exceptMarket {
+			exceptID = sc.ID
+			break
+		}
+	}
+	if !s.nameTaken(name, exceptID) {
+		return name
+	}
+	for n := 2; n < 1000; n++ {
+		candidate := fmt.Sprintf("%s %d", name, n)
+		if utf8.RuneCountInString(candidate) > MaxNameLen {
+			break
+		}
+		if !s.nameTaken(candidate, exceptID) {
+			return candidate
+		}
+	}
+	return name
+}
+
 // List returns every scene, home first.
 func (s *Store) List() []Scene {
 	s.mu.Lock()
@@ -236,7 +264,7 @@ func (s *Store) Delete(id string) error {
 func (s *Store) Install(m Market, name, html string) (Scene, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	name = strings.TrimSpace(name)
+	name = s.freeName(strings.TrimSpace(name), m.ID)
 	if err := validate(name, html); err != nil {
 		return Scene{}, err
 	}
@@ -246,17 +274,11 @@ func (s *Store) Install(m Market, name, html string) (Scene, error) {
 	}
 	for i, sc := range s.data.Scenes {
 		if sc.Market != nil && sc.Market.ID == m.ID {
-			if s.nameTaken(name, sc.ID) {
-				return Scene{}, ErrNameTaken
-			}
 			s.data.Scenes[i].Name = name
 			s.data.Scenes[i].HTML = html
 			s.data.Scenes[i].Market = &m
 			return s.data.Scenes[i], s.save()
 		}
-	}
-	if s.nameTaken(name, "") {
-		return Scene{}, ErrNameTaken
 	}
 	sc := Scene{ID: newID(), Name: name, HTML: html, Market: &m}
 	s.data.Scenes = append(s.data.Scenes, sc)

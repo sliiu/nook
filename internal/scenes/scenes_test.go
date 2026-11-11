@@ -139,6 +139,23 @@ func TestInstallAndRefresh(t *testing.T) {
 	}
 }
 
+func TestInstallKeepsATakenName(t *testing.T) {
+	s, _ := open(t)
+	m := Market{ID: "home", Version: "1.0.0", Commit: strings.Repeat("ab", 20), HTMLHash: strings.Repeat("cd", 32)}
+	sc, err := s.Install(m, "Home", "<p>market</p>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sc.Name != "Home 2" || sc.ID == HomeID {
+		t.Fatalf("catalog scene took the factory name: %+v", sc)
+	}
+	m.Version = "1.1.0"
+	again, err := s.Install(m, "Home", "<p>market v2</p>")
+	if err != nil || again.ID != sc.ID || again.Name != "Home 2" {
+		t.Fatalf("refresh renamed it: %v %+v", err, again)
+	}
+}
+
 func TestInstallRejectsBadRecords(t *testing.T) {
 	s, _ := open(t)
 	ok := Market{ID: "night", Version: "1", Commit: strings.Repeat("ab", 20), HTMLHash: strings.Repeat("cd", 32)}
