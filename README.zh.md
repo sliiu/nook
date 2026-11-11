@@ -36,6 +36,12 @@
 - **导入**只载入预览，按下保存才会写入。
 - **市场**场景来自清单仓库 [`sliiu/nook-scenes`](https://github.com/sliiu/nook-scenes)，合并后才上架。安装时核对哈希，并在沙箱里运行，只能调节音量和亮度。入口是 `nook://scene/<id>`。
 
+让 agent 来安装应用、设计场景并提交，安装 [`nook-scene`](skills/nook-scene/SKILL.md) 技能：
+
+```bash
+npx skills add sliiu/nook@nook-scene
+```
+
 ## 开发
 
 需要 Go 1.27.3+，macOS 上构建需 `CGO_ENABLED=1`。
