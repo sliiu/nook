@@ -5,9 +5,9 @@
      two-storey room, threshold effects and the Control bridge are original. -->
 <div class="home" data-scene="home">
   <canvas class="stage" aria-hidden="true"></canvas>
-  <div class="pad" tabindex="0" role="application" aria-label="音量与亮度二维点控"></div>
+  <div class="pad" tabindex="0" role="application" aria-label="volume and brightness pad"></div>
   <div class="hud">
-    <span class="readout" id="readout">音量 0 · 亮度 0</span>
+    <span class="readout" id="readout">VOL 0 · BRI 0</span>
   </div>
 </div>
 <style>
@@ -656,9 +656,9 @@
   const describe = () => {
     const v = value;
     const b = bright;
-    const who = v >= MAX_FROM ? "住人狂欢，楼下邻居在敲天花板" : b < 25 ? "住人在睡觉" : b < 50 ? "住人戴着耳机看书" : b < 75 ? "住人用脚打拍子" : v === 0 ? "住人用脚打拍子" : v >= PARTY_FROM ? "迪斯科球降下，住人在跳舞" : "住人在跳舞";
-    const sky = b < 25 ? "夜晚" : b < 50 ? "黄昏" : b < 75 ? "白天" : "晴空阳光直射";
-    return `音量 ${v}，${who}；亮度 ${b}，${sky}`;
+    const who = v >= MAX_FROM ? "the resident is raving and the neighbor downstairs is knocking on the ceiling" : b < 25 ? "the resident is asleep" : b < 50 ? "the resident is reading with headphones" : b < 75 ? "the resident is tapping a foot" : v === 0 ? "the resident is tapping a foot" : v >= PARTY_FROM ? "the disco ball is down and the resident is dancing" : "the resident is dancing";
+    const sky = b < 25 ? "night" : b < 50 ? "dusk" : b < 75 ? "day" : "hard sunlight";
+    return `volume ${v}, ${who}; brightness ${b}, ${sky}`;
   };
 
   // ---------------------------------------------------------------- puppets
@@ -2489,8 +2489,8 @@ void main() {
   })();
 
   const paintHud = () => {
-    readoutEl.textContent = `音量 ${value} · 亮度 ${bright}${briAvailable ? "" : "（预览）"}`;
-    pad.setAttribute("aria-label", `二维点控。${describe()}`);
+    readoutEl.textContent = `VOL ${value} · BRI ${bright}`;
+    pad.setAttribute("aria-label", `pad. ${describe()}`);
   };
   const setValues = (vol, bri, fromUI) => {
     const nv = Math.round(clamp(vol, 0, 100));
