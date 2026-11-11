@@ -12,9 +12,11 @@ Download the latest `.dmg` from [Releases](https://github.com/sliiu/nook/release
 
 ## Scenes
 
-A scene is one HTML file using the `Control` and `events` globals. The flyout's size, corners and background all come from the scene.
+A scene is your own control center: one HTML file using the `Control` and `events` globals. The flyout's size, corners and background all come from the scene, so you decide what it looks like and which controls it shows.
 
-- **Home** ships with the app. You can edit it but not delete it; Restore factory Home writes the built-in one back.
+Volume and brightness are the first two. The microphone, the output device and the media keys are next, and a scene will reach them through the same `Control`.
+
+- **Home** is the example that ships with the app, a two-axis pad with volume across and brightness down. You can edit it but not delete it; Restore factory Home writes the built-in one back.
 - **Import** only loads the preview. Nothing is saved until you press Save.
 - **Market** scenes come from [`sliiu/nook-scenes`](https://github.com/sliiu/nook-scenes) and are published only once a pull request is merged. Install checks the hash and runs them in a sandbox that can change only volume and brightness. The entry link is `nook://scene/<id>`.
 
