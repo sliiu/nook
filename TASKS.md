@@ -25,3 +25,4 @@
 - 音量、亮度、麦克风经 `FromAudio` / `FromBrightness` / `FromInput` 接入。输出设备和媒体键在目录里，还没有后端，`Apply` 返回 `ErrUnavailable`。
 - 麦克风是 `audio.NewInput`：macOS 走默认输入设备的 CoreAudio 输入端；其他平台返回错误，目录里显示为不可用。冒烟程序 `cmd/micsmoke`。
 - 浮层桥仍是 `GetVolume` / `GetBrightness`。观察者仍用音量的 `DefaultKey` 区分换设备。
+- README 写明：Home 是示例，场景是用户自己的控制中心；音量和亮度是头两项，麦克风、输出设备和媒体键会接着加，走同一个 `Control`。
