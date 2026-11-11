@@ -1,8 +1,24 @@
-# ![Nook](.github/logo.png) Nook
+<div align="center">
 
-菜单栏里的一间像素小房间，调节输出音量和内建屏亮度。界面由 HTML 场景驱动。页面在 [sliiu.github.io/nook](https://sliiu.github.io/nook/)。[English](README.md)
+<a href="https://sliiu.github.io/nook/"><img src=".github/logo-256.png" width="112" alt="Nook"></a>
 
-在浮层上拖动：横向是音量，纵向是亮度。用键盘改变这两项时，浮层弹出约 1.6 秒。
+<br>
+
+# Nook
+
+### 菜单栏里的一间像素小房间。
+
+**横向拖动调音量，纵向拖动调亮度。**<br>
+界面是一个 HTML 场景，场景就是你自己的控制中心。
+
+[![Release](https://img.shields.io/github/v/release/sliiu/nook?label=release&color=111111)](https://github.com/sliiu/nook/releases/latest) [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)<br>
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
+
+**[下载](https://sliiu.github.io/nook/)** &nbsp;·&nbsp; **[场景](https://github.com/sliiu/nook-scenes)** &nbsp;·&nbsp; **简体中文** · [English](README.md)
+
+</div>
+
+<br>
 
 ## 安装
 
