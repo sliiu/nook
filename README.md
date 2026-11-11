@@ -1,8 +1,24 @@
-# ![Nook](.github/logo.png) Nook
+<div align="center">
 
-A pixel room in your menu bar for output volume and built-in display brightness. The interface is an HTML scene. The page is at [sliiu.github.io/nook](https://sliiu.github.io/nook/). [中文](README.zh.md)
+<a href="https://sliiu.github.io/nook/"><img src=".github/logo-256.png" width="112" alt="Nook"></a>
 
-Drag across the flyout: horizontal is volume, vertical is brightness. When keys change either, the flyout pops up for about 1.6 seconds.
+<br>
+
+# Nook
+
+### A pixel room in your menu bar.
+
+**Drag across for volume, down for brightness.**<br>
+The interface is an HTML scene, and the scene is your own control center.
+
+[![Release](https://img.shields.io/github/v/release/sliiu/nook?label=release&color=111111)](https://github.com/sliiu/nook/releases/latest) [![License](https://img.shields.io/badge/license-MIT-111111)](LICENSE)<br>
+![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
+
+**[Download](https://sliiu.github.io/nook/)** &nbsp;·&nbsp; **[Scenes](https://github.com/sliiu/nook-scenes)** &nbsp;·&nbsp; **English** · [简体中文](README.zh.md)
+
+</div>
+
+<br>
 
 ## Install
 
