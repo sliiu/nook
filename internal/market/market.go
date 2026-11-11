@@ -43,6 +43,9 @@ var (
 	idRe     = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$`)
 	commitRe = regexp.MustCompile(`^[0-9a-f]{40}$`)
 
+	// versionRe is three numbers, the same rule the catalog review applies.
+	versionRe = regexp.MustCompile(`^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$`)
+
 	// Markup that reaches out of the file. A data: image is fine; a remote one
 	// is not, because the review never saw those bytes.
 	scriptSrc = regexp.MustCompile(`(?i)<script\b[^>]*\bsrc\s*=`)
@@ -155,7 +158,7 @@ func Check(id, commit string, metaRaw []byte, html string) (Scene, error) {
 	if strings.TrimSpace(meta.Name) == "" || utf8Len(meta.Name) > scenes.MaxNameLen {
 		return Scene{}, ErrMeta
 	}
-	if meta.Version == "" || len(meta.Version) > 32 || strings.TrimSpace(html) == "" {
+	if !versionRe.MatchString(meta.Version) || strings.TrimSpace(html) == "" {
 		return Scene{}, ErrMeta
 	}
 	if meta.Preview != "" && meta.Preview != "preview.png" {

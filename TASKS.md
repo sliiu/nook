@@ -16,6 +16,8 @@
 - 应用只安装清单里的包，核对 commit 与 HTML 哈希；入口是 `nook://scene/<id>`。
 - 市场场景走 sandbox iframe + 窄桥；本地导入维持同文档 `scene-host`。
 - 清单仓库不放进本仓库。2026-11-11 已建公开仓库 `sliiu/nook-scenes`。`home` 经 nook-scenes#1 上架。目录页经 nook-scenes#2 合并。home 的 `htmlSha256` 和预览检查经 nook-scenes#4 合并，`main` 是 `5fb4116`，页面在 `https://sliiu.github.io/nook-scenes/`。
+- 更新不需要新机制：应用按市场 id 认场景，同一个 id 再装一次就是覆盖；`nook://scene/<id>` 不带 commit，装的是 `main` 的最新。作者改原目录、提 PR、合并即可。
+- 版本号收成三段数字（`1.2.3`）。清单审核和应用安装用同一条规则，已上架的 `home`（`1.0.0`）不受影响。清单 README 写明页面只拿得到音量和亮度。改动在 `nook-scenes` 的 `docs/scene-permissions`，还没提 PR。
 
 ## 已定：统一控制接口（2026-11-10）
 
