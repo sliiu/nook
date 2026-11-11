@@ -269,6 +269,12 @@ func openSceneLink(link string) {
 	go func() {
 		if _, err := bridge.InstallFromLink(link); err != nil {
 			log.Printf("scene link: %v", err)
+			openSettings()
+			mygo.Dialog.Message(mygo.MessageOptions{
+				Type:    mygo.MessageError,
+				Title:   "Nook",
+				Message: err.Error(),
+			})
 			return
 		}
 		openSettings()
