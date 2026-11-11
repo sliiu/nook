@@ -1,13 +1,15 @@
 //go:build darwin
 
-// Default-output scalar volume via CoreAudio.
+// Default-device scalar volume via CoreAudio.
+//
+// New is the default output device, scope output. NewInput is the default
+// input device (the microphone), scope input.
 //
 // kAudioDevicePropertyVolumeScalar is 0.0–1.0 on the main element. A device
-// with no hardware knob uses the virtual main volume ('vmvc'). Scope is
-// output only for v1. A muted device reads as 0. A non-zero write clears
-// mute. Mute itself does not write a new level. A device with neither knob
-// is not an error: it reads as 0 with Adjustable false, and a volume or mute
-// write on it changes nothing.
+// with no hardware knob uses the virtual main volume ('vmvc'). A muted device
+// reads as 0. A non-zero write clears mute. Mute itself does not write a new
+// level. A device with neither knob is not an error: it reads as 0 with
+// Adjustable false, and a volume or mute write on it changes nothing.
 package audio
 
 /*
@@ -41,73 +43,100 @@ const (
 	elementMain = C.AudioObjectPropertyElement(C.kAudioObjectPropertyElementMain)
 	scopeGlobal = C.AudioObjectPropertyScope(C.kAudioObjectPropertyScopeGlobal)
 	scopeOutput = C.AudioObjectPropertyScope(C.kAudioDevicePropertyScopeOutput)
+	scopeInput  = C.AudioObjectPropertyScope(C.kAudioDevicePropertyScopeInput)
 
 	selDefaultOutput = C.AudioObjectPropertySelector(C.kAudioHardwarePropertyDefaultOutputDevice)
+	selDefaultInput  = C.AudioObjectPropertySelector(C.kAudioHardwarePropertyDefaultInputDevice)
 	selVolumeScalar  = C.AudioObjectPropertySelector(C.kAudioDevicePropertyVolumeScalar)
 	selMute          = C.AudioObjectPropertySelector(C.kAudioDevicePropertyMute)
 	// 'vmvc'. Virtual main volume when the device has no hardware knob.
 	selVirtualVolume = C.AudioObjectPropertySelector(0x766d7663)
 )
 
-type darwinBackend struct{}
+// darwinBackend is one default device. scope selects output or input on it.
+type darwinBackend struct {
+	scope          C.AudioObjectPropertyScope
+	label          string
+	deviceSelector C.AudioObjectPropertySelector
+}
+
+func outputBackend() darwinBackend {
+	return darwinBackend{scope: scopeOutput, label: "output", deviceSelector: selDefaultOutput}
+}
+
+func inputBackend() darwinBackend {
+	return darwinBackend{scope: scopeInput, label: "input", deviceSelector: selDefaultInput}
+}
 
 // New opens the CoreAudio output backend. Fails when there is no default
 // output device.
 func New() (Backend, error) {
-	if _, err := defaultOutput(); err != nil {
+	b := outputBackend()
+	if _, err := b.device(); err != nil {
 		return nil, err
 	}
-	return darwinBackend{}, nil
+	return b, nil
 }
 
-func (darwinBackend) Level() (Level, error) {
-	device, err := defaultOutput()
+// NewInput opens the CoreAudio input backend (the default microphone).
+// Fails when there is no default input device. A device with no volume knob
+// still returns a backend; Level then reports Adjustable false.
+func NewInput() (Backend, error) {
+	b := inputBackend()
+	if _, err := b.device(); err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
+func (b darwinBackend) Level() (Level, error) {
+	device, err := b.device()
 	if err != nil {
 		return Level{}, err
 	}
-	addr, err := volumeAddress(device)
+	address, err := b.volumeAddress(device)
 	if err != nil {
 		return Level{Percent: 0, Muted: false, Adjustable: false}, nil
 	}
-	if readMute(device) {
+	if b.readMute(device) {
 		return Level{Percent: 0, Muted: true, Adjustable: true}, nil
 	}
-	scalar, err := readF32(device, addr)
+	scalar, err := readF32(device, address)
 	if err != nil {
 		return Level{}, err
 	}
 	return Level{Percent: ScalarToPercent(scalar), Muted: false, Adjustable: true}, nil
 }
 
-func (darwinBackend) Set(percent int) error {
+func (b darwinBackend) Set(percent int) error {
 	percent = ClampPercent(percent)
-	device, err := defaultOutput()
+	device, err := b.device()
 	if err != nil {
 		return err
 	}
-	addr, err := volumeAddress(device)
+	address, err := b.volumeAddress(device)
 	if err != nil {
 		return nil
 	}
-	if err := writeF32(device, addr, PercentToScalar(percent)); err != nil {
+	if err := writeF32(device, address, PercentToScalar(percent)); err != nil {
 		return err
 	}
 	if percent > 0 {
-		return writeMute(device, false)
+		return b.writeMute(device, false)
 	}
 	return nil
 }
 
-func (darwinBackend) SetMute(muted bool) error {
-	device, err := defaultOutput()
+func (b darwinBackend) SetMute(muted bool) error {
+	device, err := b.device()
 	if err != nil {
 		return err
 	}
-	return writeMute(device, muted)
+	return b.writeMute(device, muted)
 }
 
-func (darwinBackend) DefaultKey() (*uint64, error) {
-	device, err := defaultOutput()
+func (b darwinBackend) DefaultKey() (*uint64, error) {
+	device, err := b.device()
 	if err != nil {
 		return nil, nil
 	}
@@ -131,30 +160,30 @@ func has(device C.AudioObjectID, address C.AudioObjectPropertyAddress) bool {
 	return C.vol_has(device, &address) != 0
 }
 
-func defaultOutput() (C.AudioObjectID, error) {
-	address := addr(selDefaultOutput, scopeGlobal)
+func (b darwinBackend) device() (C.AudioObjectID, error) {
+	address := addr(b.deviceSelector, scopeGlobal)
 	var device C.AudioObjectID
 	size := C.UInt32(C.sizeof_AudioObjectID)
 	status := C.vol_get(audioSystem, &address, &size, unsafe.Pointer(&device))
 	if status != 0 {
-		return 0, statusErr("default output", status)
+		return 0, statusErr("default "+b.label, status)
 	}
 	if device == 0 {
-		return 0, fmt.Errorf("no default output device")
+		return 0, fmt.Errorf("no default %s device", b.label)
 	}
 	return device, nil
 }
 
-func volumeAddress(device C.AudioObjectID) (C.AudioObjectPropertyAddress, error) {
-	main := addr(selVolumeScalar, scopeOutput)
+func (b darwinBackend) volumeAddress(device C.AudioObjectID) (C.AudioObjectPropertyAddress, error) {
+	main := addr(selVolumeScalar, b.scope)
 	if has(device, main) {
 		return main, nil
 	}
-	virtual := addr(selVirtualVolume, scopeOutput)
+	virtual := addr(selVirtualVolume, b.scope)
 	if has(device, virtual) {
 		return virtual, nil
 	}
-	return C.AudioObjectPropertyAddress{}, fmt.Errorf("default output device has no scalar volume")
+	return C.AudioObjectPropertyAddress{}, fmt.Errorf("default %s device has no scalar volume", b.label)
 }
 
 func readF32(device C.AudioObjectID, address C.AudioObjectPropertyAddress) (float32, error) {
@@ -176,8 +205,8 @@ func writeF32(device C.AudioObjectID, address C.AudioObjectPropertyAddress, valu
 	return nil
 }
 
-func readMute(device C.AudioObjectID) bool {
-	address := addr(selMute, scopeOutput)
+func (b darwinBackend) readMute(device C.AudioObjectID) bool {
+	address := addr(selMute, b.scope)
 	if !has(device, address) {
 		return false
 	}
@@ -190,8 +219,8 @@ func readMute(device C.AudioObjectID) bool {
 	return muted != 0
 }
 
-func writeMute(device C.AudioObjectID, muted bool) error {
-	address := addr(selMute, scopeOutput)
+func (b darwinBackend) writeMute(device C.AudioObjectID, muted bool) error {
+	address := addr(selMute, b.scope)
 	if !has(device, address) {
 		return nil
 	}

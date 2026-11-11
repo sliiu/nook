@@ -5,11 +5,13 @@ package scenes
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"unicode/utf8"
@@ -30,13 +32,25 @@ var (
 	ErrHTMLEmpty  = errors.New("scene html is empty")
 	ErrHTMLLarge  = errors.New("scene html is too large")
 	ErrHomeLocked = errors.New("the home scene cannot be deleted or renamed")
+	ErrMarket     = errors.New("a catalog scene cannot be edited")
 )
 
-// Scene is one single-file HTML scene.
+// Scene is one single-file HTML scene. Market is set only for scenes
+// installed from the catalog; a local scene leaves it empty.
 type Scene struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	HTML string `json:"html"`
+	ID     string  `json:"id"`
+	Name   string  `json:"name"`
+	HTML   string  `json:"html"`
+	Market *Market `json:"market,omitempty"`
+}
+
+// Market records where an installed catalog scene came from. HTMLHash is the
+// SHA-256 of HTML, lowercase hex, checked again on every update.
+type Market struct {
+	ID       string `json:"id"`
+	Version  string `json:"version"`
+	Commit   string `json:"commit"`
+	HTMLHash string `json:"htmlHash"`
 }
 
 type file struct {
@@ -78,6 +92,9 @@ func (s *Store) repair() {
 			continue
 		}
 		if sc.ID == "" || seen[sc.ID] || validate(sc.Name, sc.HTML) != nil {
+			continue
+		}
+		if sc.Market != nil && !validMarket(sc.Market) {
 			continue
 		}
 		seen[sc.ID] = true
@@ -188,6 +205,9 @@ func (s *Store) Save(id, name, html string) (Scene, error) {
 	if i < 0 {
 		return Scene{}, ErrNotFound
 	}
+	if s.data.Scenes[i].Market != nil {
+		return Scene{}, ErrMarket
+	}
 	s.data.Scenes[i].Name = name
 	s.data.Scenes[i].HTML = html
 	return s.data.Scenes[i], s.save()
@@ -211,6 +231,38 @@ func (s *Store) Delete(id string) error {
 	return s.save()
 }
 
+// Install records a catalog scene, or refreshes the one already installed
+// for the same market id. The caller has already checked the catalog.
+func (s *Store) Install(m Market, name, html string) (Scene, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	name = strings.TrimSpace(name)
+	if err := validate(name, html); err != nil {
+		return Scene{}, err
+	}
+	m.HTMLHash = HTMLHash(html)
+	if !validMarket(&m) {
+		return Scene{}, ErrMarket
+	}
+	for i, sc := range s.data.Scenes {
+		if sc.Market != nil && sc.Market.ID == m.ID {
+			if s.nameTaken(name, sc.ID) {
+				return Scene{}, ErrNameTaken
+			}
+			s.data.Scenes[i].Name = name
+			s.data.Scenes[i].HTML = html
+			s.data.Scenes[i].Market = &m
+			return s.data.Scenes[i], s.save()
+		}
+	}
+	if s.nameTaken(name, "") {
+		return Scene{}, ErrNameTaken
+	}
+	sc := Scene{ID: newID(), Name: name, HTML: html, Market: &m}
+	s.data.Scenes = append(s.data.Scenes, sc)
+	return sc, s.save()
+}
+
 // RestoreHome writes the factory page back into home and selects it.
 func (s *Store) RestoreHome() (Scene, error) {
 	s.mu.Lock()
@@ -219,6 +271,34 @@ func (s *Store) RestoreHome() (Scene, error) {
 	s.data.Scenes[i].HTML = s.factory
 	s.data.Current = HomeID
 	return s.data.Scenes[i], s.save()
+}
+
+var marketIDRe = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$`)
+
+func validMarket(m *Market) bool {
+	if m == nil || !marketIDRe.MatchString(m.ID) {
+		return false
+	}
+	if len(m.Commit) != 40 || len(m.HTMLHash) != 64 {
+		return false
+	}
+	for _, s := range []string{m.Commit, m.HTMLHash} {
+		for _, r := range s {
+			if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+				return false
+			}
+		}
+	}
+	if m.Version == "" || len(m.Version) > 32 {
+		return false
+	}
+	return true
+}
+
+// HTMLHash is the lowercase hex SHA-256 of a scene page.
+func HTMLHash(html string) string {
+	sum := sha256.Sum256([]byte(html))
+	return hex.EncodeToString(sum[:])
 }
 
 func newID() string {

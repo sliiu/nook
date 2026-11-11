@@ -63,6 +63,13 @@ export const Control = {
   importHTML() {
     return call("Control.ImportHTML");
   },
+  /**
+   * Installs one catalog scene from a nook://scene/<id> link or a bare id.
+   * Refreshes the scene when that catalog id is already installed.
+   */
+  installFromLink(link) {
+    return call("Control.InstallFromLink", link);
+  },
 };
 
 function on(name, listener) {

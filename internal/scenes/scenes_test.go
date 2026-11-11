@@ -115,6 +115,60 @@ func TestDeleteCurrentFallsBackToHome(t *testing.T) {
 	}
 }
 
+func TestInstallAndRefresh(t *testing.T) {
+	s, path := open(t)
+	m := Market{ID: "night", Version: "1.0.0", Commit: strings.Repeat("ab", 20), HTMLHash: strings.Repeat("cd", 32)}
+	sc, err := s.Install(m, "Night", "<p>v1</p>")
+	if err != nil || sc.Market == nil || sc.Market.HTMLHash != HTMLHash("<p>v1</p>") {
+		t.Fatalf("install: %v %+v", err, sc)
+	}
+	if _, err := s.Save(sc.ID, "Night", "<p>edited</p>"); !errors.Is(err, ErrMarket) {
+		t.Fatalf("catalog scene must not be editable, got %v", err)
+	}
+	m.Version = "1.1.0"
+	updated, err := s.Install(m, "Night", "<p>v2</p>")
+	if err != nil || updated.ID != sc.ID || updated.HTML != "<p>v2</p>" || updated.Market.Version != "1.1.0" {
+		t.Fatalf("refresh: %v %+v", err, updated)
+	}
+	if len(s.List()) != 2 {
+		t.Fatalf("refresh created a second scene: %+v", s.List())
+	}
+	reopened, err := Open(path, "<p>factory</p>")
+	if err != nil || reopened.List()[1].Market.Commit != m.Commit {
+		t.Fatalf("market record not persisted: %v", err)
+	}
+}
+
+func TestInstallRejectsBadRecords(t *testing.T) {
+	s, _ := open(t)
+	ok := Market{ID: "night", Version: "1", Commit: strings.Repeat("ab", 20), HTMLHash: strings.Repeat("cd", 32)}
+	bad := []Market{
+		{ID: "Night", Version: "1", Commit: ok.Commit, HTMLHash: ok.HTMLHash},
+		{ID: "night", Version: "", Commit: ok.Commit, HTMLHash: ok.HTMLHash},
+		{ID: "night", Version: "1", Commit: "abc", HTMLHash: ok.HTMLHash},
+	}
+	for _, m := range bad {
+		if _, err := s.Install(m, "Night", "<p>"); !errors.Is(err, ErrMarket) {
+			t.Errorf("Install(%+v) = %v", m, err)
+		}
+	}
+}
+
+func TestRepairDropsBrokenMarketRecords(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "scenes.json")
+	raw := `{"current":"home","scenes":[{"id":"s_1","name":"Night","html":"<p>","market":{"id":"BAD","version":"1","commit":"abc","htmlHash":"abc"}}]}`
+	if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, err := Open(path, "<p>factory</p>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.List()) != 1 {
+		t.Fatalf("broken market record kept: %+v", s.List())
+	}
+}
+
 func TestRestoreHome(t *testing.T) {
 	s, _ := open(t)
 	_, _ = s.Save(HomeID, "x", "<p>custom</p>")

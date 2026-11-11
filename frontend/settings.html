@@ -465,6 +465,7 @@
           <div class="row-h">
             <h2 data-i18n="scenes.title"></h2>
             <button type="button" class="btn small" id="b-import" data-i18n="scenes.import"></button>
+            <button type="button" class="btn small" id="b-market" data-i18n="scenes.market"></button>
             <button type="button" class="btn small go" id="b-new" data-i18n="scenes.new"></button>
           </div>
           <div class="grid" id="grid" role="listbox" data-i18n-aria="scenes.list"></div>
@@ -477,6 +478,7 @@
             <div class="row-h">
               <button type="button" class="btn go" id="b-use"></button>
               <button type="button" class="btn" id="b-restore" data-i18n-title="btn.restore.tip" data-i18n="btn.restore"></button>
+              <button type="button" class="btn" id="b-update" hidden data-i18n="btn.update"></button>
             </div>
             <details id="src">
               <summary data-i18n="src.summary"></summary>
@@ -516,6 +518,7 @@
             <li data-i18n-html="about.scenes.1"></li>
             <li data-i18n="about.scenes.2"></li>
             <li data-i18n="about.scenes.3"></li>
+            <li data-i18n="about.scenes.4"></li>
           </ul>
         </div>
         <div class="tile warn">
@@ -529,7 +532,7 @@
 
     <script type="module">
       import { Control, events } from "./mygo.js";
-      import { mountScene } from "./scene-host.js";
+      import { mountMarketScene, mountScene } from "./scene-host.js";
       import { t, setLang, onLang, apply } from "./i18n.js";
 
       const $ = (id) => document.getElementById(id);
@@ -547,7 +550,9 @@
         use: $("b-use"),
         neu: $("b-new"),
         imp: $("b-import"),
+        market: $("b-market"),
         restore: $("b-restore"),
+        update: $("b-update"),
       };
 
       let scenes = [];
@@ -605,14 +610,16 @@
         const has = !!selected;
         const isNew = has && selected.id === "";
         const cur = has && (scenes.find((s) => s.id === selected.id) || {}).current === true;
-        b.save.disabled = !has || !isDirty();
-        b.revert.disabled = !has || isNew || !isDirty();
+        const market = has && !!selected.marketId;
+        b.save.disabled = !has || market || !isDirty();
+        b.revert.disabled = !has || isNew || market || !isDirty();
         b.del.disabled = !has || isNew || selected.isHome;
         b.use.disabled = !has || isNew || cur;
         b.use.textContent = cur ? t("btn.using") : t("btn.use");
         b.restore.disabled = !scenes.some((s) => s.isHome);
-        nameEl.disabled = !has || selected.isHome;
-        htmlEl.disabled = !has;
+        b.update.hidden = !market;
+        nameEl.disabled = !has || selected.isHome || market;
+        htmlEl.disabled = !has || market;
         if (!/ok|err/.test(statusEl.className)) say(isDirty() ? t("st.dirty") : "");
       }
       const discardOK = () => !isDirty() || window.confirm(t("confirm.discard"));
@@ -638,7 +645,13 @@
           nm.textContent = s.name;
           const sub = document.createElement("div");
           sub.className = "sub";
-          sub.textContent = s.isHome ? t("scene.factory") : s.isNew ? t("scene.unsaved") : t("scene.custom");
+          sub.textContent = s.isHome
+            ? t("scene.factory")
+            : s.isNew
+              ? t("scene.unsaved")
+              : s.marketId
+                ? t("scene.market", { version: s.version || "?" })
+                : t("scene.custom");
           text.append(nm, sub);
           card.append(icon, text);
           if (s.current) {
@@ -722,7 +735,8 @@
         liveEl.classList.remove("off");
         $("live-t").textContent = t("preview.running", { name: nameEl.value.trim() || t("scene.untitled") });
         try {
-          await mountScene(host, htmlEl.value, { Control, events });
+          if (selected.marketId) mountMarketScene(host, htmlEl.value, { Control, events });
+          else await mountScene(host, htmlEl.value, { Control, events });
           if (ticket === pvTicket) {
             measure();
             new ResizeObserver(measure).observe(host);
@@ -766,6 +780,23 @@
         srcEl.open = true;
         nameEl.focus();
       });
+      async function installLink(link, { confirmName } = {}) {
+        if (confirmName && !window.confirm(t("confirm.update", { name: confirmName }))) return;
+        try {
+          const sc = await Control.installFromLink(link);
+          await loadList();
+          show(sc);
+          say(confirmName ? t("st.updated") : t("st.installed"), "ok");
+        } catch (e) {
+          say(errText(e), "err");
+        }
+      }
+      b.market.addEventListener("click", () => {
+        if (!discardOK()) return;
+        const link = window.prompt(t("prompt.market"), "");
+        if (!link || !link.trim()) return;
+        installLink(link.trim());
+      });
       b.imp.addEventListener("click", async () => {
         if (!discardOK()) return;
         try {
@@ -778,7 +809,7 @@
         }
       });
       b.save.addEventListener("click", async () => {
-        if (!selected) return;
+        if (!selected || selected.marketId) return;
         try {
           const sc = await Control.saveScene(selected.id, nameEl.value, htmlEl.value);
           selected = sc;
@@ -820,6 +851,10 @@
           say(errText(e), "err");
         }
       });
+      b.update.addEventListener("click", () => {
+        if (!selected || !selected.marketId) return;
+        installLink(selected.marketId, { confirmName: selected.name });
+      });
       b.restore.addEventListener("click", async () => {
         if (!window.confirm(t("confirm.restore"))) return;
         try {
@@ -840,6 +875,7 @@
         langSel.value = info.setting;
       }
       onLang(() => {
+        apply();
         renderGrid();
         sync();
         if (!document.querySelector("#device [data-scene]")) $("live-t").textContent = t("preview.idle");

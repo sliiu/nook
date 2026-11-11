@@ -24,7 +24,8 @@ CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build   # 产出 dist 下�
 
 ## 信任与风险
 
-- 自定义场景 HTML 可调用系统控制桥，与个人本地场景同信任级。
+- 自己写的和从文件导入的场景与应用同权限，只导入信任的文件。
+- 市场场景来自清单仓库 `sliiu/nook-scenes`，安装时核对哈希，并在沙箱里运行，只能调节音量和亮度。
 - 亮度将使用私有 DisplayServices API，系统升级可能失效。
 
 ## 灵感致谢
