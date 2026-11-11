@@ -41,4 +41,4 @@ CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build   # 产出 dist 下�
 
 如果 Nook 对你有帮助，欢迎请我喝杯咖啡：
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-pax__z-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/pax_z)
+<a href="https://www.buymeacoffee.com/pax_z" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="60" width="217"></a>
