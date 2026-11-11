@@ -121,7 +121,7 @@
         color: var(--ink);
       }
       .download {
-        display: inline-block;
+        display: inline-flex;
         border: 2px solid var(--line);
         background: var(--accent);
         border-radius: 10px;
@@ -140,9 +140,16 @@
         box-shadow: 0 0 0 var(--ink);
       }
       .fine {
-        margin: 10px 0 0;
+        display: flow-root;
+        margin: 20px 0 0;
         color: var(--ink-2);
         font-size: 12px;
+      }
+      .hero .fine {
+        margin-top: 20px;
+      }
+      .grid + .fine {
+        margin-top: 28px;
       }
       h3 {
         margin: 36px 0 6px;
@@ -350,15 +357,19 @@
         grid.replaceChildren(...scenes.map(card));
       }
 
-      // Replaced at deploy with the latest release: { tag, dmg }. The page
-      // never asks api.github.com, for the same reason as LISTING.
+      // Replaced at deploy with the latest release: { tag, dmg, downloads }.
+      // The page never asks api.github.com, for the same reason as LISTING.
       const RELEASE = /* RELEASE */ null /* /RELEASE */;
 
       function loadRelease() {
         const version = document.getElementById("version");
         if (RELEASE && RELEASE.dmg) document.getElementById("download").href = RELEASE.dmg;
+        const count =
+          RELEASE && typeof RELEASE.downloads === "number"
+            ? " · 下载 " + RELEASE.downloads.toLocaleString("zh") + " 次"
+            : "";
         version.appendChild(
-          text(((RELEASE && RELEASE.tag) || "") + " · 未签名，首次打开请右键 → 打开"),
+          text(((RELEASE && RELEASE.tag) || "") + count + " · 未签名，首次打开请右键 → 打开"),
         );
         version.appendChild(document.createElement("br"));
         version.appendChild(text("Not signed. On first launch, right-click and choose Open."));

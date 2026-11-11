@@ -8,7 +8,7 @@
 //   GH_TOKEN=... node site/build.mjs site/index.html
 //
 // It replaces two markers: LISTING, the scene ids in sliiu/nook-scenes, and
-// RELEASE, { tag, dmg } for the newest release of this repository.
+// RELEASE, { tag, dmg, downloads } for the newest release of this repository.
 
 import { readFileSync, writeFileSync } from "node:fs"
 
@@ -46,7 +46,11 @@ const ids = present.filter(Boolean).sort()
 
 const release = await get("https://api.github.com/repos/sliiu/nook/releases/latest")
 const dmg = (release.assets || []).find((asset) => asset.name.endsWith(".dmg"))
-const info = { tag: release.tag_name || "", dmg: dmg ? dmg.browser_download_url : "" }
+const info = {
+  tag: release.tag_name || "",
+  dmg: dmg ? dmg.browser_download_url : "",
+  downloads: dmg ? dmg.download_count || 0 : 0,
+}
 
 let html = readFileSync(page, "utf8")
 for (const [marker, value] of [
@@ -63,4 +67,4 @@ for (const [marker, value] of [
 
 writeFileSync(page, html)
 console.log(`scenes: ${ids.join(" ") || "没有"}`)
-console.log(`release: ${info.tag} ${info.dmg || "没有 dmg"}`)
+console.log(`release: ${info.tag} ${info.downloads} 次 ${info.dmg || "没有 dmg"}`)
