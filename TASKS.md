@@ -8,14 +8,14 @@
 | M3 | 出厂二维点控 Home + 16 态动画 + scene-host | self | ✅ 完成 | — | 更完整像素房；亮度不可用时锁 Y |
 | M4 | 设置页场景 CRUD / 导入 / RestoreHome | self | 🔄 进行 | — | 存储+桥+托盘菜单+设置页已写；`go test` 通过、设置页无头渲染 OK；设置页已按新风格重做（纸感像素风，预览在左）；打包命令 `CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build` 成功，.app 已启动；导入对话框、托盘切换、浮层热切换待手测 |
 | M5 | 打磨、打包、stub 编译、验收清单 | — | ⬜ 待办 | — | |
-| M6 | 场景市场：清单仓库 + 沙箱安装 | self | 🔄 进行 | — | 客户端已写；`home` 已上架（nook-scenes#1）；目录页已合并（nook-scenes#2，380d3cf），Pages 已开 |
+| M6 | 场景市场：清单仓库 + 沙箱安装 | self | 🔄 进行 | — | 客户端已写；`home` 已上架（nook-scenes#1）；目录页已合并（nook-scenes#2）；哈希与预览检查已合并（nook-scenes#4，5fb4116），Pages 已开 |
 
 ## 已定：场景市场（2026-11-10）
 
 - 审核在公开清单仓库 `sliiu/nook-scenes` 的 PR 上，合并才上架；Action 预审危险写法。不做账号后台。
 - 应用只安装清单里的包，核对 commit 与 HTML 哈希；入口是 `nook://scene/<id>`。
 - 市场场景走 sandbox iframe + 窄桥；本地导入维持同文档 `scene-host`。
-- 清单仓库不放进本仓库。2026-11-11 已建公开仓库 `sliiu/nook-scenes`。`home` 经 nook-scenes#1 上架。目录页经 nook-scenes#2 合并，`main` 是 `380d3cf`，页面在 `https://sliiu.github.io/nook-scenes/`。
+- 清单仓库不放进本仓库。2026-11-11 已建公开仓库 `sliiu/nook-scenes`。`home` 经 nook-scenes#1 上架。目录页经 nook-scenes#2 合并。home 的 `htmlSha256` 和预览检查经 nook-scenes#4 合并，`main` 是 `5fb4116`，页面在 `https://sliiu.github.io/nook-scenes/`。
 
 ## 已定：统一控制接口（2026-11-10）
 
