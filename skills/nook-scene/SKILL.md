@@ -56,6 +56,8 @@ Ask what the scene should do and look like before writing it. Keep it to one scr
 `Control` and `events` are globals. Every call returns a promise.
 
 - `Control.getState()` returns `{ volume, brightness, brightnessAvailable }`. Read this once at start.
+- `Control.listControls()` returns every control: `{ id, kind, available, adjustable, percent, muted, on, selected, options }`. `kind` is `level`, `switch`, `choice` or `action`. `options` is `{ id, label }`. The ids are `output.level`, `display.level`, `input.level`, `keyboard.level`, `output.device`, `media.previous`, `media.toggle`, `media.next`, `appearance` and `wifi.power`. An unavailable control stays in the list with `available: false`; show it, do not hide it or invent a value.
+- `Control.setControl(id, write)` changes one control. `write` carries only the fields that change: `{ percent }`, `{ muted }`, `{ on }` or `{ selected }`. An action takes an empty write. A refused write rejects the promise.
 - `Control.getVolume()` returns `{ level, muted, adjustable }`. `level` is 0–100.
 - `Control.setVolume(level)` sets the output volume. A non-zero write unmutes.
 - `Control.setMute(muted)` mutes or unmutes without changing the level.

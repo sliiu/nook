@@ -24,6 +24,12 @@ export const Control = {
   getState() {
     return call("Control.GetState");
   },
+  listControls() {
+    return call("Control.ListControls");
+  },
+  setControl(id, write) {
+    return call("Control.SetControl", id, write || {});
+  },
   noteDrag(dragging) {
     return call("Control.NoteDrag", dragging);
   },

@@ -20,8 +20,14 @@ import (
 	"pixel-control-center/app"
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
+	"pixel-control-center/internal/controls"
+	"pixel-control-center/internal/devices"
+	"pixel-control-center/internal/keyboard"
+	"pixel-control-center/internal/media"
+	"pixel-control-center/internal/power"
 	"pixel-control-center/internal/prefs"
 	"pixel-control-center/internal/scenes"
+	"pixel-control-center/internal/system"
 )
 
 //go:embed all:frontend
@@ -305,6 +311,7 @@ func main() {
 		log.Fatal("brightness backend: ", err)
 	}
 	bridge = app.NewControl(audioBackend, brightBackend, trayShell{})
+	app.AttachCatalog(bridge, controlCatalog(audioBackend, inputBackend(), brightBackend))
 	mygo.Bind(bridge)
 
 	mygo.App.SetName("Nook")
@@ -338,4 +345,39 @@ func main() {
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// controlCatalog builds the scene catalog. A backend that fails to open is
+// left out, and its control then reads as unavailable.
+func controlCatalog(output audio.Backend, input audio.Backend, display brightness.Backend) []controls.Control {
+	open := func(name string, fn func() (any, error)) any {
+		v, err := fn()
+		if err != nil {
+			log.Printf("nook: %s unavailable: %v", name, err)
+			return nil
+		}
+		return v
+	}
+	return controls.Desktop(controls.Hardware{
+		Output:     output,
+		Input:      input,
+		Display:    display,
+		Keyboard:   open("keyboard", func() (any, error) { return keyboard.New() }).(keyboard.Backend),
+		Devices:    open("devices", func() (any, error) { return devices.New() }).(devices.Backend),
+		Media:      open("media", func() (any, error) { return media.New() }).(media.Backend),
+		Appearance: open("appearance", func() (any, error) { return system.NewAppearance() }).(system.Backend),
+		WiFi:       open("wifi", func() (any, error) { return power.NewWiFi() }).(power.Backend),
+	})
+
+}
+
+// inputBackend opens the microphone. No default input device is not fatal;
+// the control reads as unavailable.
+func inputBackend() audio.Backend {
+	b, err := audio.NewInput()
+	if err != nil {
+		log.Printf("nook: microphone unavailable: %v", err)
+		return nil
+	}
+	return b
 }

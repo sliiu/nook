@@ -30,11 +30,11 @@ Download the latest `.dmg` from [Releases](https://github.com/sliiu/nook/release
 
 A scene is your own control center: one HTML file using the `Control` and `events` globals. The flyout's size, corners and background all come from the scene, so you decide what it looks like and which controls it shows.
 
-Volume and brightness are the first two. The microphone, the output device and the media keys are next, and a scene will reach them through the same `Control`.
+Volume and brightness came first. A scene now also reaches the microphone, the keyboard backlight, the output device, the media keys, appearance and Wi-Fi through the same `Control`.
 
 - **Home** is the example that ships with the app, a two-axis pad with volume across and brightness down. You can edit it but not delete it; Restore factory Home writes the built-in one back.
 - **Import** only loads the preview. Nothing is saved until you press Save.
-- **Market** scenes come from [`sliiu/nook-scenes`](https://github.com/sliiu/nook-scenes) and are published only once a pull request is merged. Install checks the hash and runs them in a sandbox that can change only volume and brightness. The entry link is `nook://scene/<id>`.
+- **Market** scenes come from [`sliiu/nook-scenes`](https://github.com/sliiu/nook-scenes) and are published only once a pull request is merged. Install checks the hash and runs them in a sandbox. The entry link is `nook://scene/<id>`.
 
 To have an agent install the app, design a scene and open the pull request, install the [`nook-scene`](skills/nook-scene/SKILL.md) skill:
 
@@ -54,8 +54,9 @@ CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build   # writes the .app a
 
 ## Trust
 
-- Scenes you write or import from a file run with the app's own permissions. Only import files you trust.
-- Brightness works on the built-in display only, through a private macOS API. A system update can break it, and without a built-in display the vertical axis is preview-only.
+- Scenes you write or import from a file run with the app's own permissions. Only import files you trust. Such a scene can switch the default output device, change appearance, send media keys and turn Wi-Fi off.
+- Brightness, the keyboard backlight and the media keys go through private macOS APIs. A system update can break any of them. Without a built-in display the brightness axis is preview-only, and a keyboard without a backlight reports itself unavailable.
+- Wi-Fi can be read by any scene. Turning it off needs a permission macOS has not granted this app, so the switch may report that it cannot.
 
 ## Credit
 
