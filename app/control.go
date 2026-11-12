@@ -2,11 +2,13 @@
 package app
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
+	"pixel-control-center/internal/controls"
 	"pixel-control-center/internal/prefs"
 	"pixel-control-center/internal/scenes"
 )
@@ -36,6 +38,35 @@ type SystemState struct {
 	Available  bool `json:"brightnessAvailable"`
 }
 
+// OptionRow is one entry of a choice control.
+type OptionRow struct {
+	ID    string `json:"id"`
+	Label string `json:"label"`
+}
+
+// ControlRow is one control as a scene reads it. Fields that do not belong
+// to the kind stay zero.
+type ControlRow struct {
+	ID         string      `json:"id"`
+	Kind       string      `json:"kind"`
+	Available  bool        `json:"available"`
+	Adjustable bool        `json:"adjustable"`
+	Percent    int         `json:"percent"`
+	Muted      bool        `json:"muted"`
+	On         bool        `json:"on"`
+	Selected   string      `json:"selected"`
+	Options    []OptionRow `json:"options"`
+}
+
+// ControlWrite is a partial change. Zero fields are left as they are, except
+// On, which a switch always applies.
+type ControlWrite struct {
+	Percent  *int    `json:"percent,omitempty"`
+	Muted    *bool   `json:"muted,omitempty"`
+	On       *bool   `json:"on,omitempty"`
+	Selected *string `json:"selected,omitempty"`
+}
+
 type axisSlot struct {
 	seen   int
 	expect *int
@@ -48,6 +79,7 @@ type Control struct {
 	mu         sync.Mutex
 	audio      audio.Backend
 	brightness brightness.Backend
+	catalog    []controls.Control
 	shell      Shell
 	volume     axisSlot
 	bright     axisSlot
@@ -80,6 +112,17 @@ func NewControl(audioBackend audio.Backend, brightBackend brightness.Backend, sh
 		}
 	}
 	return c
+}
+
+// AttachCatalog adds the controls a scene reaches through ListControls and
+// SetControl. Volume and brightness keep their own methods.
+func AttachCatalog(c *Control, catalog []controls.Control) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	c.catalog = catalog
+	c.mu.Unlock()
 }
 
 // GetVolume returns the default output percent, 0–100. A muted device reads
@@ -383,5 +426,64 @@ func (c *Control) showExternal(change external, form string) {
 	c.mu.Unlock()
 	if c.shell != nil {
 		c.shell.ShowShort()
+	}
+}
+
+// ListControls reads every control the catalog carries.
+func (c *Control) ListControls() ([]ControlRow, error) {
+	c.mu.Lock()
+	catalog := c.catalog
+	c.mu.Unlock()
+	rows := make([]ControlRow, 0, len(catalog))
+	for _, control := range catalog {
+		if control == nil {
+			continue
+		}
+		value, err := control.Read()
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, rowFrom(control.Spec(), value))
+	}
+	return rows, nil
+}
+
+// SetControl applies one partial change. An unknown id is an error. A control
+// this machine cannot drive returns an error too, so a scene can tell a
+// refused write from a write that landed.
+func (c *Control) SetControl(id string, write ControlWrite) error {
+	c.mu.Lock()
+	catalog := c.catalog
+	c.mu.Unlock()
+	control := controls.Find(catalog, controls.ID(id))
+	if control == nil {
+		return fmt.Errorf("control %q is not in the catalog", id)
+	}
+	if !control.Available() {
+		return controls.ErrUnavailable
+	}
+	return control.Apply(controls.Update{
+		Percent:  write.Percent,
+		Muted:    write.Muted,
+		On:       write.On,
+		Selected: write.Selected,
+	})
+}
+
+func rowFrom(spec controls.Spec, value controls.Value) ControlRow {
+	options := make([]OptionRow, len(value.Options))
+	for i, option := range value.Options {
+		options[i] = OptionRow{ID: option.ID, Label: option.Label}
+	}
+	return ControlRow{
+		ID:         string(spec.ID),
+		Kind:       string(spec.Kind),
+		Available:  value.Available,
+		Adjustable: value.Adjustable,
+		Percent:    value.Percent,
+		Muted:      value.Muted,
+		On:         value.On,
+		Selected:   value.Selected,
+		Options:    options,
 	}
 }

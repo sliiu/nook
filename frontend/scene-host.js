@@ -104,6 +104,8 @@ export async function mountSceneURL(host, url, api) {
 // it cannot read the shell, and the only bridge it gets is the one below.
 const MARKET_CALLS = new Set([
   "getState",
+  "listControls",
+  "setControl",
   "setVolume",
   "setMute",
   "setBrightness",
@@ -260,6 +262,8 @@ function bridgeSource() {
   });
   window.Control = {
     getState: () => call("getState", []),
+    listControls: () => call("listControls", []),
+    setControl: (id, write) => call("setControl", [id, write]),
     setVolume: (level) => call("setVolume", [level]),
     setMute: (muted) => call("setMute", [muted]),
     setBrightness: (level) => call("setBrightness", [level]),

@@ -6,55 +6,10 @@ import (
 
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
+	"pixel-control-center/internal/keyboard"
+	"pixel-control-center/internal/media"
+	"pixel-control-center/internal/system"
 )
-
-type fakeAudio struct {
-	level audio.Level
-	sets  []int
-	mutes []bool
-	err   error
-}
-
-func (f *fakeAudio) Level() (audio.Level, error) {
-	if f.err != nil {
-		return audio.Level{}, f.err
-	}
-	return f.level, nil
-}
-func (f *fakeAudio) Set(percent int) error {
-	f.sets = append(f.sets, percent)
-	f.level.Percent = percent
-	if percent > 0 {
-		f.level.Muted = false
-	}
-	return nil
-}
-func (f *fakeAudio) SetMute(muted bool) error {
-	f.mutes = append(f.mutes, muted)
-	f.level.Muted = muted
-	if muted {
-		f.level.Percent = 0
-	}
-	return nil
-}
-func (f *fakeAudio) DefaultKey() (*uint64, error) { return nil, nil }
-
-type fakeBright struct {
-	level     brightness.Level
-	available bool
-	sets      []int
-}
-
-func (f *fakeBright) Level() (brightness.Level, error) {
-	f.level.Available = f.available
-	return f.level, nil
-}
-func (f *fakeBright) Set(percent int) error {
-	f.sets = append(f.sets, percent)
-	f.level.Percent = percent
-	return nil
-}
-func (f *fakeBright) Available() bool { return f.available }
 
 func ptr[T any](v T) *T { return &v }
 
@@ -62,11 +17,20 @@ func TestDesktopCatalog(t *testing.T) {
 	out := &fakeAudio{level: audio.Level{Percent: 40, Adjustable: true}}
 	in := &fakeAudio{level: audio.Level{Percent: 70, Muted: true, Adjustable: true}}
 	display := &fakeBright{level: brightness.Level{Percent: 60}, available: true}
-	list := Desktop(out, in, display)
+	keys := &fakeKeyboard{level: keyboard.Level{Percent: 30}, available: true}
+	devs := &fakeChoice{selected: "173", available: true, options: []system.Option{{ID: "173", Label: "Speakers"}}}
+	look := &fakeChoice{selected: "auto", available: true, options: []system.Option{{ID: "auto", Label: "Auto"}}}
+	wifi := &fakeSwitch{on: true, available: true}
+	player := &fakeMedia{available: true}
+	list := Desktop(Hardware{
+		Output: out, Input: in, Display: display, Keyboard: keys,
+		Devices: devs, Media: player, Appearance: look, WiFi: wifi,
+	})
 
 	want := []Spec{
 		specOutput, specDisplay, specInput, specDevice,
 		specMediaPrevious, specMediaToggle, specMediaNext,
+		specKeyboard, specAppearance, specWiFi,
 	}
 	if len(list) != len(want) {
 		t.Fatalf("catalog %d, want %d", len(list), len(want))
@@ -84,14 +48,8 @@ func TestDesktopCatalog(t *testing.T) {
 	if err != nil || got.Percent != 70 || !got.Muted {
 		t.Fatalf("input read %+v, %v", got, err)
 	}
-	for _, id := range []ID{OutputDevice, MediaToggle} {
-		c := Find(list, id)
-		if c.Available() {
-			t.Fatalf("%s should be unavailable", id)
-		}
-		if err := c.Apply(Update{}); !errors.Is(err, ErrUnavailable) {
-			t.Fatalf("%s Apply = %v, want ErrUnavailable", id, err)
-		}
+	if !Find(list, OutputDevice).Available() || !Find(list, MediaToggle).Available() {
+		t.Fatal("device and media should be available when a backend is wired")
 	}
 }
 
@@ -153,7 +111,7 @@ func TestFromBrightness(t *testing.T) {
 }
 
 func TestNilBackendsAreMissing(t *testing.T) {
-	list := Desktop(nil, nil, nil)
+	list := Desktop(Hardware{})
 	for _, id := range []ID{OutputLevel, DisplayLevel, InputLevel} {
 		c := Find(list, id)
 		if c.Available() {
@@ -162,5 +120,58 @@ func TestNilBackendsAreMissing(t *testing.T) {
 		if err := c.Apply(Update{Percent: ptr(10)}); !errors.Is(err, ErrUnavailable) {
 			t.Fatalf("%s Apply = %v", id, err)
 		}
+	}
+}
+
+func TestSwitchChoiceAndAction(t *testing.T) {
+	wifi := &fakeSwitch{on: true, available: true}
+	switchControl := FromPower(wifi, specWiFi)
+	got, err := switchControl.Read()
+	if err != nil || !got.On || !got.Adjustable {
+		t.Fatalf("wifi read %+v, %v", got, err)
+	}
+	if err := switchControl.Apply(Update{On: ptr(false)}); err != nil {
+		t.Fatal(err)
+	}
+	if len(wifi.sets) != 1 || wifi.sets[0] {
+		t.Fatalf("wifi set %v, want [false]", wifi.sets)
+	}
+	if err := switchControl.Apply(Update{Percent: ptr(1)}); !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("percent on a switch = %v", err)
+	}
+
+	devs := &fakeChoice{selected: "173", available: true, options: []system.Option{{ID: "173", Label: "Speakers"}}}
+	choice := FromDevices(devs)
+	got, err = choice.Read()
+	if err != nil || got.Selected != "173" || len(got.Options) != 1 {
+		t.Fatalf("device read %+v, %v", got, err)
+	}
+	if err := choice.Apply(Update{Selected: ptr("56")}); err != nil {
+		t.Fatal(err)
+	}
+	if len(devs.picked) != 1 || devs.picked[0] != "56" {
+		t.Fatalf("picked %v", devs.picked)
+	}
+
+	player := &fakeMedia{available: true}
+	action := mediaAction(player, specMediaNext)
+	if err := action.Apply(Update{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(player.sent) != 1 || player.sent[0] != media.Next {
+		t.Fatalf("sent %v, want next", player.sent)
+	}
+
+	keys := &fakeKeyboard{available: true}
+	backlight := FromKeyboard(keys)
+	if err := backlight.Apply(Update{Percent: ptr(140)}); err != nil {
+		t.Fatal(err)
+	}
+	if len(keys.sets) != 1 || keys.sets[0] != 100 {
+		t.Fatalf("keyboard set %v, want [100]", keys.sets)
+	}
+	off := &fakeKeyboard{}
+	if err := FromKeyboard(off).Apply(Update{Percent: ptr(10)}); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("unavailable keyboard = %v", err)
 	}
 }

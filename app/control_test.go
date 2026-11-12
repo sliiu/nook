@@ -1,11 +1,13 @@
 package app
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
+	"pixel-control-center/internal/controls"
 )
 
 type fakeAudio struct {
@@ -168,5 +170,35 @@ func TestNoteIdleSkippedWhileDragging(t *testing.T) {
 	defer c.mu.Unlock()
 	if c.hiding {
 		t.Fatal("hide should not arm while dragging")
+	}
+}
+
+func TestListAndSetControl(t *testing.T) {
+	wifi := &controls.FakeSwitch{OnValue: true, IsAvailable: true}
+	c := NewControl(&fakeAudio{level: audio.Level{Percent: 10, Adjustable: true}}, nil, nil)
+	AttachCatalog(c, []controls.Control{
+		controls.FromPower(wifi, controls.Spec{ID: controls.WiFiPower, Kind: controls.KindSwitch}),
+	})
+
+	rows, err := c.ListControls()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].ID != string(controls.WiFiPower) || !rows[0].On {
+		t.Fatalf("rows %+v", rows)
+	}
+	off := false
+	if err := c.SetControl(string(controls.WiFiPower), ControlWrite{On: &off}); err != nil {
+		t.Fatal(err)
+	}
+	if len(wifi.Sets) != 1 || wifi.Sets[0] {
+		t.Fatalf("wifi sets %v, want [false]", wifi.Sets)
+	}
+	if err := c.SetControl("nope", ControlWrite{}); err == nil {
+		t.Fatal("unknown id should fail")
+	}
+	wifi.IsAvailable = false
+	if err := c.SetControl(string(controls.WiFiPower), ControlWrite{On: &off}); !errors.Is(err, controls.ErrUnavailable) {
+		t.Fatalf("unavailable write = %v", err)
 	}
 }
