@@ -3,6 +3,7 @@ package market
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,11 @@ import (
 
 	"pixel-control-center/internal/scenes"
 )
+
+// pktline is one git advertisement line: 4 hex digits of its own length.
+func pktline(s string) string {
+	return fmt.Sprintf("%04x%s\n", len(s)+5, s)
+}
 
 const (
 	commit = "0123456789abcdef0123456789abcdef01234567"
@@ -100,8 +106,10 @@ func TestParseLink(t *testing.T) {
 func TestFetchResolvesTheBranchTip(t *testing.T) {
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/sliiu/nook-scenes/git/ref/heads/main":
-			w.Write([]byte(`{"object":{"sha":"` + commit + `"}}`))
+		case "/sliiu/nook-scenes.git/info/refs":
+			fmt.Fprint(w, pktline("# service=git-upload-pack"), "0000")
+			fmt.Fprint(w, pktline(commit+" HEAD\x00multi_ack"))
+			fmt.Fprint(w, pktline(commit+" refs/heads/main"))
 		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.json":
 			w.Write([]byte(meta()))
 		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.html":
@@ -112,7 +120,7 @@ func TestFetchResolvesTheBranchTip(t *testing.T) {
 	}))
 	defer api.Close()
 
-	scene, err := (&Client{Raw: api.URL, Commits: api.URL}).Fetch(context.Background(), "night", "")
+	scene, err := (&Client{Raw: api.URL, Refs: api.URL}).Fetch(context.Background(), "night", "")
 	if err != nil {
 		t.Fatal(err)
 	}
