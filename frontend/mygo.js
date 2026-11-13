@@ -76,6 +76,15 @@ export const Control = {
   installFromLink(link) {
     return call("Control.InstallFromLink", link);
   },
+  appInfo() {
+    return call("Control.AppInfo");
+  },
+  updateStatus() {
+    return call("Control.UpdateStatus");
+  },
+  checkForUpdates() {
+    return call("Control.CheckForUpdates");
+  },
 };
 
 function on(name, listener) {
@@ -87,4 +96,5 @@ export const events = {
   pillForm: { on: (listener) => on("pill-form", listener) },
   scenesChanged: { on: (listener) => on("scenes-changed", listener) },
   langChanged: { on: (listener) => on("lang-changed", listener) },
+  updateChanged: { on: (listener) => on("update-changed", listener) },
 };
