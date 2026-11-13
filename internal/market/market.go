@@ -4,6 +4,7 @@
 package market
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -78,13 +80,13 @@ type Scene struct {
 	Commit  string
 }
 
-// Client talks to one GitHub repository. Tests point Raw and Commits at a
+// Client talks to one GitHub repository. Tests point Raw and Refs at a
 // local server; both stay empty in the app.
 type Client struct {
-	Repo    string
-	HTTP    *http.Client
-	Raw     string // host serving /<repo>/<commit>/scenes/<id>/{scene.json,scene.html}
-	Commits string // host serving /repos/<repo>/git/ref/heads/<ref>
+	Repo string
+	HTTP *http.Client
+	Raw  string // host serving /<repo>/<commit>/scenes/<id>/{scene.json,scene.html}
+	Refs string // host serving /<repo>.git/info/refs?service=git-upload-pack
 }
 
 // ParseLink reads nook://scene/<id>[@<commit>] and the same id written bare.
@@ -268,26 +270,47 @@ func (c *Client) resolve(ctx context.Context, repo, commit string) (string, erro
 	if commit != "" {
 		return commit, nil
 	}
-	host := c.Commits
+	host := c.Refs
 	if host == "" {
-		host = "https://api.github.com"
+		host = "https://github.com"
 	}
-	// The commits endpoint returns the patch as well, which is larger than
-	// maxMeta for any real scene. The ref is only the tip sha.
-	url := strings.TrimRight(host, "/") + "/repos/" + repo + "/git/ref/heads/" + DefaultRef
+	// The git advertisement, not the REST ref: api.github.com allows 60
+	// unauthenticated requests an hour per IP, and a shared address spends them
+	// before anyone installs a scene.
+	url := strings.TrimRight(host, "/") + "/" + repo + ".git/info/refs?service=git-upload-pack"
 	raw, err := c.get(ctx, url, maxMeta)
 	if err != nil {
 		return "", err
 	}
-	var body struct {
-		Object struct {
-			SHA string `json:"sha"`
-		} `json:"object"`
-	}
-	if err := json.Unmarshal(raw, &body); err != nil || !commitRe.MatchString(body.Object.SHA) {
+	sha, ok := refTip(raw, DefaultRef)
+	if !ok {
 		return "", ErrCommit
 	}
-	return body.Object.SHA, nil
+	return sha, nil
+}
+
+// refTip reads the sha of refs/heads/<ref> out of a git upload-pack
+// advertisement. Each pkt-line is 4 hex digits of length, then that many bytes.
+func refTip(raw []byte, ref string) (string, bool) {
+	want := "refs/heads/" + ref
+	for len(raw) >= 4 {
+		n, err := strconv.ParseUint(string(raw[:4]), 16, 16)
+		if err != nil || int(n) > len(raw) {
+			return "", false
+		}
+		if n == 0 {
+			raw = raw[4:]
+			continue
+		}
+		line := string(bytes.TrimRight(raw[4:n], "\n"))
+		raw = raw[n:]
+		line, _, _ = strings.Cut(line, "\x00")
+		sha, name, found := strings.Cut(line, " ")
+		if found && name == want && commitRe.MatchString(sha) {
+			return sha, true
+		}
+	}
+	return "", false
 }
 
 func (c *Client) rawURL(repo, commit, id, file string) string {

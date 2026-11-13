@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,8 +19,9 @@ func TestInstallFromLinkRefreshesTheSameScene(t *testing.T) {
 		scenes.HTMLHash(page) + `"}`
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/commits/main"):
-			w.Write([]byte(`{"sha":"` + commit + `"}`))
+		case strings.HasSuffix(r.URL.Path, "/info/refs"):
+			line := commit + " refs/heads/main\n"
+			fmt.Fprintf(w, "%04x%s", len(line)+4, line)
 		case strings.HasSuffix(r.URL.Path, "/scene.json"):
 			w.Write([]byte(meta))
 		case strings.HasSuffix(r.URL.Path, "/scene.html"):
@@ -31,7 +33,7 @@ func TestInstallFromLinkRefreshesTheSameScene(t *testing.T) {
 	t.Cleanup(api.Close)
 
 	prev := catalog
-	catalog = &market.Client{Raw: api.URL, Commits: api.URL}
+	catalog = &market.Client{Raw: api.URL, Refs: api.URL}
 	t.Cleanup(func() { catalog = prev })
 
 	store, err := scenes.Open(t.TempDir()+"/scenes.json", "<p>factory</p>")
