@@ -9,7 +9,7 @@
 | M4 | 设置页场景 CRUD / 导入 / RestoreHome | self | 🔄 进行 | — | 存储+桥+托盘菜单+设置页已写；`go test` 通过、设置页无头渲染 OK；设置页已按新风格重做（纸感像素风，预览在左）；打包命令 `CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build` 成功，.app 已启动；导入对话框、托盘切换、浮层热切换待手测 |
 | M5 | 打磨、打包、stub 编译、验收清单 | — | ⬜ 待办 | — | |
 | M6 | 场景市场：清单仓库 + 沙箱安装 | self | 🔄 进行 | — | 客户端已写；`home` 已上架（nook-scenes#1）；目录页已合并（nook-scenes#2）；哈希与预览检查已合并（nook-scenes#4，5fb4116），Pages 已开 |
-| M7 | 应用自更新 | self | 🔄 进行 | — | 代码已接 MyGo 签名更新；secret 已设；代码未提交；下一版仍要手动装 |
+| M7 | 应用自更新 | self | ✅ 完成 | #18 | 已合入 main（956a7ee）；secret 已设；下一版仍要手动装 |
 
 ## 已定：场景市场（2026-11-10）
 
