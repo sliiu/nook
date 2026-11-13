@@ -83,7 +83,7 @@ type Scene struct {
 type Client struct {
 	Repo    string
 	HTTP    *http.Client
-	Raw     string // host serving /<repo>/<commit>/<id>/{scene.json,scene.html}
+	Raw     string // host serving /<repo>/<commit>/scenes/<id>/{scene.json,scene.html}
 	Commits string // host serving /repos/<repo>/commits/<ref>
 }
 
@@ -291,7 +291,7 @@ func (c *Client) rawURL(repo, commit, id, file string) string {
 	if host == "" {
 		host = "https://raw.githubusercontent.com"
 	}
-	return strings.TrimRight(host, "/") + "/" + repo + "/" + commit + "/" + id + "/" + file
+	return strings.TrimRight(host, "/") + "/" + repo + "/" + commit + "/scenes/" + id + "/" + file
 }
 
 func (c *Client) get(ctx context.Context, url string, limit int64) ([]byte, error) {
