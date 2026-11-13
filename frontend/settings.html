@@ -775,10 +775,7 @@
         }
       }
       b.market.addEventListener("click", () => {
-        if (!discardOK()) return;
-        const link = window.prompt(t("prompt.market"), "");
-        if (!link || !link.trim()) return;
-        installLink(link.trim());
+        window.open("https://sliiu.github.io/nook/");
       });
       b.imp.addEventListener("click", async () => {
         if (!discardOK()) return;
