@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Installing a catalog scene no longer reports the page as too large. The app reads the branch tip instead of the commit patch.
+
 ## 0.1.5
 
 - Nook checks for a new version and can install it. The tray menu and the About page both open the update window.
