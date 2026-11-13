@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.7
+
+- Installing a catalog scene no longer asks api.github.com for the branch tip, so a shared address that has used its 60 requests still installs.
+
 ## 0.1.6
 
 - Installing a catalog scene no longer reports the page as too large. The app reads the branch tip instead of the commit patch.
