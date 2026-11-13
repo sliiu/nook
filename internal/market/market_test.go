@@ -102,9 +102,9 @@ func TestFetchResolvesTheBranchTip(t *testing.T) {
 		switch r.URL.Path {
 		case "/repos/sliiu/nook-scenes/commits/main":
 			w.Write([]byte(`{"sha":"` + commit + `"}`))
-		case "/sliiu/nook-scenes/" + commit + "/night/scene.json":
+		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.json":
 			w.Write([]byte(meta()))
-		case "/sliiu/nook-scenes/" + commit + "/night/scene.html":
+		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.html":
 			w.Write([]byte(page))
 		default:
 			http.NotFound(w, r)

@@ -7,8 +7,9 @@
 //
 //   GH_TOKEN=... node site/build.mjs site/index.html
 //
-// It replaces two markers: LISTING, the scene ids in sliiu/nook-scenes, and
-// RELEASE, { tag, dmg, downloads } for the newest release of this repository.
+// It replaces one marker: RELEASE, { tag, dmg, downloads } for the newest
+// release of this repository. The scene cards come from scenes.json in
+// sliiu/nook-scenes, which the page fetches itself.
 
 import { readFileSync, writeFileSync } from "node:fs"
 
@@ -31,19 +32,6 @@ async function get(url) {
   return res.json()
 }
 
-const tree = await get("https://api.github.com/repos/sliiu/nook-scenes/git/trees/main")
-const dirs = (tree.tree || []).filter((node) => node.type === "tree" && !node.path.includes("/"))
-const present = await Promise.all(
-  dirs.map(async (dir) => {
-    const res = await fetch(
-      `https://api.github.com/repos/sliiu/nook-scenes/contents/${dir.path}/scene.json`,
-      { headers },
-    )
-    return res.ok ? dir.path : ""
-  }),
-)
-const ids = present.filter(Boolean).sort()
-
 const release = await get("https://api.github.com/repos/sliiu/nook/releases/latest")
 const dmg = (release.assets || []).find((asset) => asset.name.endsWith(".dmg"))
 const info = {
@@ -53,10 +41,7 @@ const info = {
 }
 
 let html = readFileSync(page, "utf8")
-for (const [marker, value] of [
-  ["LISTING", JSON.stringify(ids)],
-  ["RELEASE", JSON.stringify(info)],
-]) {
+for (const [marker, value] of [["RELEASE", JSON.stringify(info)]]) {
   const spot = `/* ${marker} */ null /* /${marker} */`
   if (!html.includes(spot)) {
     console.error(`${page} 里没有 ${spot}`)
@@ -66,5 +51,4 @@ for (const [marker, value] of [
 }
 
 writeFileSync(page, html)
-console.log(`scenes: ${ids.join(" ") || "没有"}`)
 console.log(`release: ${info.tag} ${info.downloads} 次 ${info.dmg || "没有 dmg"}`)
