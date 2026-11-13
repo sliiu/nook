@@ -367,41 +367,24 @@
         grid.appendChild(box);
       }
 
-      // Replaced at deploy with the scene ids found in the nook-scenes checkout.
-      // The page never asks api.github.com, which answers 403 once an IP has
-      // spent its 60 unauthenticated requests an hour.
-      const LISTING = /* LISTING */ null /* /LISTING */;
-
+      // scenes.json is written on the catalog's main after a scene merges.
+      // raw.githubusercontent.com has no hourly cap, unlike api.github.com.
       async function loadScenes() {
-        const ids = LISTING;
-        if (!ids) return empty("清单读不到，稍后再试");
-        if (!ids.length) return empty("还没有上架的场景");
-        const scenes = [];
-        await Promise.all(
-          ids.map(async (id) => {
-            const res = await fetch(
-              "https://raw.githubusercontent.com/" + CATALOG + "/main/" + id + "/scene.json",
-            );
-            if (!res.ok) return;
-            const meta = await res.json();
-            if (!meta || meta.id !== id) return;
-            scenes.push({
-              id: meta.id,
-              name: meta.name,
-              version: meta.version,
-              description: meta.description,
-              author: meta.author,
-              preview: meta.preview === "preview.png" ? id + "/preview.png" : "",
-            });
-          }),
+        const res = await fetch(
+          "https://raw.githubusercontent.com/" + CATALOG + "/main/scenes.json",
         );
-        scenes.sort((a, b) => a.id.localeCompare(b.id));
+        if (!res.ok) return empty("清单读不到，稍后再试");
+        const body = await res.json();
+        const scenes = (Array.isArray(body.scenes) ? body.scenes : [])
+          .filter((scene) => scene && scene.id)
+          .sort((a, b) => String(a.id).localeCompare(String(b.id)));
         if (!scenes.length) return empty("还没有上架的场景");
         grid.replaceChildren(...scenes.map(card));
       }
 
       // Replaced at deploy with the latest release: { tag, dmg, downloads }.
-      // The page never asks api.github.com, for the same reason as LISTING.
+      // The page never asks api.github.com, which answers 403 once an IP has
+      // spent its 60 unauthenticated requests an hour.
       const RELEASE = /* RELEASE */ null /* /RELEASE */;
 
       function loadRelease() {

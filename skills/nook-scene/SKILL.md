@@ -95,7 +95,7 @@ With the app installed, the user imports the file from Settings. Import only loa
 One scene is one directory in `sliiu/nook-scenes`. The directory name is the id: lowercase letters, digits and hyphens, 2 to 40 characters, not starting or ending with a hyphen.
 
 ```text
-night/
+scenes/night/
   scene.json
   scene.html
   preview.png      (optional)
@@ -120,13 +120,13 @@ night/
 Hash the file's bytes, not a re-encoded string:
 
 ```bash
-shasum -a 256 night/scene.html
+shasum -a 256 scenes/night/scene.html
 ```
 
 Check it the way the catalog will. The checker reads the scene from the working tree of a `nook-scenes` checkout, so run it there:
 
 ```bash
-node review/check.mjs night/scene.json night/scene.html
+node review/check.mjs scenes/night/scene.json scenes/night/scene.html
 ```
 
 It exits 1 and prints one reason per line. Fix those before opening the pull request.
