@@ -2,6 +2,21 @@ package app
 
 import "github.com/egoist/mygo"
 
+// AppInfo is the running build, for the About page.
+type AppInfo struct {
+	Version string `json:"version"`
+}
+
+// UpdateInfo is what the last update check found. Available is empty when
+// the app is current, before a check, or after one that failed.
+type UpdateInfo struct {
+	Current   string `json:"current"`
+	Available string `json:"available"`
+}
+
+// UpdateChanged tells windows to redraw the update row.
+var UpdateChanged = mygo.NewEvent[UpdateInfo]("update-changed")
+
 // StateChanged is emitted when volume (and later brightness) moves outside a
 // user drag. Watcher emissions use Source "external" so the page does not
 // echo its own writes.

@@ -9,6 +9,7 @@
 | M4 | 设置页场景 CRUD / 导入 / RestoreHome | self | 🔄 进行 | — | 存储+桥+托盘菜单+设置页已写；`go test` 通过、设置页无头渲染 OK；设置页已按新风格重做（纸感像素风，预览在左）；打包命令 `CGO_ENABLED=1 go run github.com/egoist/mygo/cmd/mygo build` 成功，.app 已启动；导入对话框、托盘切换、浮层热切换待手测 |
 | M5 | 打磨、打包、stub 编译、验收清单 | — | ⬜ 待办 | — | |
 | M6 | 场景市场：清单仓库 + 沙箱安装 | self | 🔄 进行 | — | 客户端已写；`home` 已上架（nook-scenes#1）；目录页已合并（nook-scenes#2）；哈希与预览检查已合并（nook-scenes#4，5fb4116），Pages 已开 |
+| M7 | 应用自更新 | self | 🔄 进行 | — | 代码已接 MyGo 签名更新；secret 已设；代码未提交；下一版仍要手动装 |
 
 ## 已定：场景市场（2026-11-10）
 
@@ -19,6 +20,15 @@
 - 更新不需要新机制：应用按市场 id 认场景，同一个 id 再装一次就是覆盖；`nook://scene/<id>` 不带 commit，装的是 `main` 的最新。作者改原目录、提 PR、合并即可。
 - 版本号收成三段数字（`1.2.3`）。清单审核和应用安装用同一条规则，已上架的 `home`（`1.0.0`）不受影响。清单 README 写明页面只拿得到音量和亮度。改动在 `nook-scenes` 的 `docs/scene-permissions`，还没提 PR。
 - 产品入口放在 `nook` 仓库的 Pages，地址 `sliiu.github.io/nook/`，一页放介绍、下载和场景卡片。场景数据留在 `nook-scenes`，页面发布时写入场景 id 和最新 `.dmg`，浏览器不再请求 `api.github.com`。`nook-scenes` 的 Pages 待入口上线后停掉。
+
+## 已定：应用自更新（2026-11-13）
+
+- 走 MyGo 签名更新，不自己拉 GitHub。`mygo.json` 的 `updates.github` 是 `sliiu/nook`，公钥已写入。
+- 签名私钥只在本机 `~/.config/mygo/update-keys/mygo-update.key`，不进仓库。仓库 secret `MYGO_UPDATER_PRIVATE_KEY` 已于 2026-11-13 写入。
+- `release.yml` 先建 draft，再 `mygo build -upload`。发布 draft 之后，已装的版本才会收到更新。
+- 更新窗口的说明取 `CHANGELOG.md` 里 `## <version>` 那一段。文件在，缺这段构建会失败。
+- 已发出的 0.1.4 没有公钥，收不到更新。带更新器的下一版仍要手动装 dmg。
+- 应用未公证。更新包用我们的密钥签名，第一次打开仍要右键 → 打开。
 
 ## 已定：统一控制接口（2026-11-10）
 

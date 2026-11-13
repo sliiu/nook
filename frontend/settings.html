@@ -483,6 +483,13 @@
 
       <section class="about" id="p-about" hidden>
         <div class="tile">
+          <div class="row-h">
+            <h3 id="app-version" style="margin: 0"></h3>
+            <button type="button" class="btn small" id="b-app-update" data-i18n="about.update"></button>
+          </div>
+          <p class="tip" id="app-update-note" hidden></p>
+        </div>
+        <div class="tile">
           <h3 data-i18n="about.what.h"></h3>
           <p data-i18n="about.what.p"></p>
         </div>
@@ -870,9 +877,29 @@
       });
       events.langChanged.on(applyLang);
 
+      // ---------- app updates
+      let appVersion = "";
+      let updateAvailable = "";
+      function showUpdate() {
+        $("app-version").textContent = t("about.version", { version: appVersion || "?" });
+        const note = $("app-update-note");
+        note.hidden = !updateAvailable;
+        note.textContent = updateAvailable ? t("about.update.avail", { version: updateAvailable }) : "";
+      }
+      $("b-app-update").addEventListener("click", () => Control.checkForUpdates());
+      events.updateChanged.on((info) => {
+        updateAvailable = info.available || "";
+        showUpdate();
+      });
+      onLang(showUpdate);
+
       (async () => {
         try {
           applyLang(await Control.getLang());
+          const info = await Control.appInfo();
+          appVersion = info.version;
+          updateAvailable = (await Control.updateStatus()).available || "";
+          showUpdate();
           await loadList();
           show(await Control.currentScene());
         } catch (e) {

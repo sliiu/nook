@@ -5,26 +5,39 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: write # the draft release, and the uploads to it
 
 jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --draft --verify-tag --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
   dmg:
+    needs: draft-release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Build .app and .dmg
+      - name: The tag matches the version the app will report
+        run: |
+          v=$(jq -r .version mygo.json)
+          test "$GITHUB_REF_NAME" = "v$v" || {
+            echo "tag $GITHUB_REF_NAME does not match mygo.json version $v" >&2
+            exit 1
+          }
+      - name: Build, sign the update and upload
         env:
           CGO_ENABLED: "1"
-        run: go run github.com/egoist/mygo/cmd/mygo build
-      - name: Locate dmg
-        run: |
-          ls -R dist | head -30
-          echo "DMG=$(find dist -name '*.dmg' | head -1)" >> "$GITHUB_ENV"
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.DMG }}
-          generate_release_notes: true
+          GH_TOKEN: ${{ github.token }}
+          MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
+        run: go run github.com/egoist/mygo/cmd/mygo build -upload
