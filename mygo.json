@@ -6,6 +6,12 @@
   "icon": "resources/icon.png",
   "frontendDist": "frontend",
   "bindings": "mygo.ts",
-  "urlSchemes": ["nook"],
-  "out": "dist"
+  "urlSchemes": [
+    "nook"
+  ],
+  "out": "dist",
+  "updates": {
+    "github": "sliiu/nook",
+    "publicKey": "ld7nOK/xZuzCwVAeZKI9svfcTb/WsLYrMOmzUWCZR2Q="
+  }
 }

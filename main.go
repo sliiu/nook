@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
 
 	"pixel-control-center/app"
 	"pixel-control-center/internal/audio"
@@ -188,6 +189,7 @@ func popupMenu() {
 	}
 	items = append(items,
 		&mygo.MenuItem{Label: tr("settings"), Click: func(*mygo.MenuItem, *mygo.Window) { openSettings() }},
+		updateMenuItem(),
 		&mygo.MenuItem{Label: tr("quit"), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 	)
 	menu := mygo.NewMenu(items)
@@ -210,12 +212,21 @@ func tr(key string) string {
 	return menuText[lang][key]
 }
 
-// langChanged fans the new language out to every window.
+// langChanged fans the new language out to every window and to the
+// updater, whose window speaks the language the app shows.
 func langChanged() {
 	info := bridge.GetLang()
+	mygo.App.SetLocale(info.Resolved)
 	for _, w := range mygo.Windows() {
 		app.LangChanged.Emit(w, info)
 	}
+}
+
+// updateMenuItem is "Check for Updates…" in the language the app shows.
+// The popup menu is built on each right click, so the label follows a
+// language change without rebuilding anything else.
+func updateMenuItem() *mygo.MenuItem {
+	return updater.MenuItem()
 }
 
 // migrateOldData copies scenes.json from the pre-rename data directory once.
@@ -257,6 +268,7 @@ func ready() {
 		tray.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 			{Label: tr("open"), Click: func(*mygo.MenuItem, *mygo.Window) { toggleFlyout() }},
 			{Label: tr("settings"), Click: func(*mygo.MenuItem, *mygo.Window) { openSettings() }},
+			updateMenuItem(),
 			mygo.Separator(),
 			{Role: mygo.RoleQuit},
 		}))
@@ -288,6 +300,7 @@ func openSceneLink(link string) {
 }
 
 func main() {
+	mygo.Use(updater.Plugin)
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
@@ -334,6 +347,15 @@ func main() {
 		migrateOldData(dir)
 		settings = prefs.Open(filepath.Join(dir, "settings.json"))
 		app.AttachPrefs(bridge, settings, langChanged)
+		// The plugin follows App.Locale, which otherwise stays the system
+		// language and ignores the choice kept in settings.
+		mygo.App.SetLocale(settings.Resolved())
+		updater.OnChange(func() {
+			info := bridge.UpdateStatus()
+			for _, w := range mygo.Windows() {
+				app.UpdateChanged.Emit(w, info)
+			}
+		})
 		store, err = scenes.Open(filepath.Join(dir, "scenes.json"), factoryHome)
 		if err != nil {
 			log.Fatal("scenes: ", err)

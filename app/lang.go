@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
 
 	"pixel-control-center/internal/prefs"
 )
@@ -48,4 +49,20 @@ func (c *Control) SetLang(lang string) (LangInfo, error) {
 		fn()
 	}
 	return c.GetLang(), nil
+}
+
+// AppInfo returns the running build.
+func (c *Control) AppInfo() AppInfo {
+	return AppInfo{Version: mygo.App.Version()}
+}
+
+// UpdateStatus returns the newer version the last check found.
+func (c *Control) UpdateStatus() UpdateInfo {
+	return UpdateInfo{Current: mygo.App.Version(), Available: updater.AvailableVersion()}
+}
+
+// CheckForUpdates opens the update window: it says when a newer version is
+// out, when the app is current, and when this build cannot update itself.
+func (c *Control) CheckForUpdates() {
+	updater.CheckForUpdates()
 }
