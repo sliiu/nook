@@ -1,7 +1,7 @@
 {
   "name": "Nook",
   "identifier": "ai.ludion.nook",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "icon": "resources/icon.png",
   "frontendDist": "frontend",
