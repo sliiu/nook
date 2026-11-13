@@ -100,8 +100,8 @@ func TestParseLink(t *testing.T) {
 func TestFetchResolvesTheBranchTip(t *testing.T) {
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/repos/sliiu/nook-scenes/commits/main":
-			w.Write([]byte(`{"sha":"` + commit + `"}`))
+		case "/repos/sliiu/nook-scenes/git/ref/heads/main":
+			w.Write([]byte(`{"object":{"sha":"` + commit + `"}}`))
 		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.json":
 			w.Write([]byte(meta()))
 		case "/sliiu/nook-scenes/" + commit + "/scenes/night/scene.html":

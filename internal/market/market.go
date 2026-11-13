@@ -84,7 +84,7 @@ type Client struct {
 	Repo    string
 	HTTP    *http.Client
 	Raw     string // host serving /<repo>/<commit>/scenes/<id>/{scene.json,scene.html}
-	Commits string // host serving /repos/<repo>/commits/<ref>
+	Commits string // host serving /repos/<repo>/git/ref/heads/<ref>
 }
 
 // ParseLink reads nook://scene/<id>[@<commit>] and the same id written bare.
@@ -272,18 +272,22 @@ func (c *Client) resolve(ctx context.Context, repo, commit string) (string, erro
 	if host == "" {
 		host = "https://api.github.com"
 	}
-	url := strings.TrimRight(host, "/") + "/repos/" + repo + "/commits/" + DefaultRef
+	// The commits endpoint returns the patch as well, which is larger than
+	// maxMeta for any real scene. The ref is only the tip sha.
+	url := strings.TrimRight(host, "/") + "/repos/" + repo + "/git/ref/heads/" + DefaultRef
 	raw, err := c.get(ctx, url, maxMeta)
 	if err != nil {
 		return "", err
 	}
 	var body struct {
-		SHA string `json:"sha"`
+		Object struct {
+			SHA string `json:"sha"`
+		} `json:"object"`
 	}
-	if err := json.Unmarshal(raw, &body); err != nil || !commitRe.MatchString(body.SHA) {
+	if err := json.Unmarshal(raw, &body); err != nil || !commitRe.MatchString(body.Object.SHA) {
 		return "", ErrCommit
 	}
-	return body.SHA, nil
+	return body.Object.SHA, nil
 }
 
 func (c *Client) rawURL(repo, commit, id, file string) string {
