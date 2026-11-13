@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- Nook checks for a new version and can install it. The tray menu and the About page both open the update window.
+- Catalog scenes install from `scenes/<id>`, matching the catalog. Install this one by hand: 0.1.4 cannot update itself.
+
 ## 0.1.4
 
 - The about page scrolls, and its mark is the pixel N.
