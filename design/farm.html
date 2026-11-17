@@ -12,18 +12,14 @@
   }
 
   body {
-    min-height: 100vh;
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    display: grid;
-    place-items: center;
-    padding: 12px;
-    background: #eee;
+    background: transparent;
   }
 
   .scene {
     position: relative;
-    width: 100%;
-    max-width: 420px;
+    width: 420px;
     aspect-ratio: 9 / 16;
     overflow: hidden;
     border-radius: 16px;
@@ -512,6 +508,7 @@
   let muted = false;
   let plantedCount = 0;
   let currentSeedIndex = 0;
+  let level = 0;
   const STEP = 5;
 
   const SEEDS = [
@@ -639,6 +636,18 @@
     });
   }
 
+  function plant(plot, icon) {
+    plot.dataset.planted = "1";
+    plot.classList.add("planted");
+    plot.querySelector(".crop-display").textContent = icon;
+  }
+
+  function clearPlot(plot) {
+    plot.dataset.planted = "0";
+    plot.classList.remove("planted");
+    plot.querySelector(".crop-display").textContent = "";
+  }
+
   function initField() {
     for (let i = 0; i < TOTAL_PLOTS; i++) {
       const plot = document.createElement("div");
@@ -648,30 +657,26 @@
       cropDisplay.className = "crop-display";
       plot.appendChild(cropDisplay);
       plot.addEventListener("click", () => {
+        const next = level + (plot.dataset.planted === "0" ? STEP : -STEP);
+        if (next < 0 || next > 100) return;
         if (plot.dataset.planted === "0") {
-          plot.dataset.planted = "1";
-          plot.classList.add("planted");
-          cropDisplay.textContent = SEEDS[currentSeedIndex].icon;
+          plant(plot, SEEDS[currentSeedIndex].icon);
           plantedCount += 1;
         } else {
-          plot.dataset.planted = "0";
-          plot.classList.remove("planted");
-          cropDisplay.textContent = "";
+          clearPlot(plot);
           plantedCount -= 1;
         }
+        level = next;
+        if (muted && level > 0) setMuted(false);
         updateVolume();
+        writeVolume(level);
       });
       field.appendChild(plot);
     }
   }
 
   function updateVolume() {
-    if (muted) {
-      volText.textContent = `音量：静音`;
-    } else {
-      const vol = plantedCount * STEP;
-      volText.textContent = `音量：${vol}%`;
-    }
+    volText.textContent = muted ? "音量：静音" : "音量：" + level + "%";
   }
 
   function initStars() {
@@ -689,13 +694,18 @@
     }
   }
 
+  function setMuted(next) {
+    muted = next;
+    scarecrow.classList.toggle("muted", muted);
+    updateVolume();
+  }
+
   scarecrow.addEventListener("click", () => {
-    muted = !muted;
-    scarecrow.classList.remove("shushing", "muted");
+    setMuted(!muted);
+    scarecrow.classList.remove("shushing");
     void scarecrow.offsetWidth;
     scarecrow.classList.add("shushing");
-    if (muted) scarecrow.classList.add("muted");
-    updateVolume();
+    writeMute(muted);
   });
 
   function progressFromClock() {
@@ -703,10 +713,71 @@
     return (now.getHours() * 60 + now.getMinutes()) / (24 * 60);
   }
 
-  renderSeedPicker();
-  initField();
-  initStars();
-  applyMode();
+  // 音量桥。没有 Control 时（浏览器里直接打开）只改页面，不报错。
+  const bridge = () => window.Control;
+  const settle = (p) => Promise.resolve(p).catch((err) => console.error(err));
+
+  function writeVolume(value) {
+    const c = bridge();
+    if (c) settle(c.setVolume(value));
+  }
+
+  function writeMute(value) {
+    const c = bridge();
+    if (c) settle(c.setMute(value));
+  }
+
+  // 系统音量变了（键盘、另一台设备）就重排田块，让作物数重新对上音量。
+  window.events?.stateChanged.on((change) => {
+    if (change.source !== "external" || typeof change.volume !== "number") return;
+    applyLevel(change.volume);
+  });
+
+  function applyLevel(value) {
+    const next = Math.max(0, Math.min(100, Math.round(value)));
+    if (muted) {
+      if (next === 0) return;
+      setMuted(false);
+    }
+    if (next === level) return;
+    const all = [...field.querySelectorAll(".plot")];
+    const want = Math.round(next / STEP);
+    while (plantedCount < want) {
+      const plot = all.find((p) => p.dataset.planted === "0");
+      if (!plot) break;
+      plant(plot, SEEDS[currentSeedIndex].icon);
+      plantedCount += 1;
+    }
+    while (plantedCount > want) {
+      const plot = all.findLast((p) => p.dataset.planted === "1");
+      if (!plot) break;
+      clearPlot(plot);
+      plantedCount -= 1;
+    }
+    level = next;
+    updateVolume();
+  }
+
+  async function boot() {
+    const c = bridge();
+    if (c) {
+      try {
+        const state = await c.getState();
+        level = Math.max(0, Math.min(100, Math.round(state.volume)));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    renderSeedPicker();
+    initField();
+    initStars();
+    applyMode();
+    const start = level;
+    level = -1;
+    applyLevel(start);
+  }
+
+  boot();
 </script>
 </body>
 </html>
