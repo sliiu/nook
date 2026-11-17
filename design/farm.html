@@ -20,6 +20,7 @@
   .scene {
     position: relative;
     width: 420px;
+    background: #9ad8ff;
     aspect-ratio: 9 / 16;
     overflow: hidden;
     border-radius: 16px;
@@ -30,8 +31,10 @@
   /* ========== 天空背景 ========== */
   .sky {
     position: absolute;
-    inset: 0;
-    z-index: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     overflow: hidden;
     cursor: pointer;
   }
@@ -42,13 +45,15 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 6;
     cursor: pointer;
   }
 
   .sky-layer {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     opacity: 0;
   }
 
@@ -113,7 +118,10 @@
   /* 星星 */
   .stars {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     opacity: 0;
     pointer-events: none;
   }
@@ -227,7 +235,10 @@
 
   .crop-display {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -244,7 +255,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    z-index: 6;
+    z-index: 8;
   }
 
   .global-seed-picker {
@@ -319,9 +330,10 @@
 
   .mute-icon {
     position: absolute;
-    left: 50%;
-    top: -40px;
-    transform: translateX(-50%);
+    left: 100%;
+    top: 50%;
+    margin-left: 8px;
+    transform: translateY(-50%);
     background: #fff;
     border: 3px solid #4a3412;
     border-radius: 999px;
@@ -365,6 +377,31 @@
   }
 
   .status-item { display: flex; align-items: center; gap: 6px; }
+
+  /* 天气牌切外观：浅色、深色、自动 */
+  .look-badge {
+    position: absolute;
+    top: 58px;
+    right: 16px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.58);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.72);
+    cursor: pointer;
+    transition: background 0.4s linear, color 0.4s linear, border-color 0.4s linear;
+  }
+
+  .look-badge:active { transform: scale(0.96); }
+
+  .look-badge[hidden] { display: none; }
 
   .status-dot {
     width: 7px;
@@ -413,7 +450,10 @@
   /* 一层月光，不要在地块上叠乘 brightness，否则作物会黑掉 */
   .night-veil {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 5;
     pointer-events: none;
     background: #0c1a3a;
@@ -422,7 +462,8 @@
 
   .night-mode .status-bar,
   .night-mode .tip,
-  .night-mode .time-label {
+  .night-mode .time-label,
+  .night-mode .look-badge {
     background: rgba(20, 30, 60, 0.55);
     color: rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.18);
@@ -482,6 +523,8 @@
       </div>
     </div>
 
+    <button class="look-badge" id="lookBadge" type="button" hidden>🌤️ 浅色</button>
+
     <div class="tip">
 点击天空切换早晨、夜晚、自动 · 南瓜静音 · 选种子播种+5%，收割-5%
     </div>
@@ -510,6 +553,15 @@
   let currentSeedIndex = 0;
   let level = 0;
   const STEP = 5;
+
+  const LOOKS = [
+    { id: "light", icon: "🌤️", label: "浅色" },
+    { id: "dark", icon: "🌙", label: "深色" },
+    { id: "auto", icon: "🌗", label: "自动" }
+  ];
+  let look = "auto";
+  let lookReady = false;
+  const lookBadge = document.getElementById("lookBadge");
 
   const SEEDS = [
     { id: "carrot", icon: "🥕", label: "胡萝卜" },
@@ -727,6 +779,25 @@
     if (c) settle(c.setMute(value));
   }
 
+  function showLook() {
+    const item = LOOKS.find((row) => row.id === look) || LOOKS[0];
+    lookBadge.textContent = item.icon + " " + item.label;
+    lookBadge.hidden = !lookReady;
+  }
+
+  function writeLook(value) {
+    const c = bridge();
+    if (c) settle(c.setControl("appearance", { selected: value }));
+  }
+
+  lookBadge.addEventListener("click", () => {
+    if (!lookReady) return;
+    const at = LOOKS.findIndex((row) => row.id === look);
+    look = LOOKS[(at + 1) % LOOKS.length].id;
+    showLook();
+    writeLook(look);
+  });
+
   // 系统音量变了（键盘、另一台设备）就重排田块，让作物数重新对上音量。
   window.events?.stateChanged.on((change) => {
     if (change.source !== "external" || typeof change.volume !== "number") return;
@@ -764,10 +835,18 @@
       try {
         const state = await c.getState();
         level = Math.max(0, Math.min(100, Math.round(state.volume)));
+        const listed = await c.listControls();
+        const row = (listed || []).find((item) => item.id === "appearance");
+        if (row && row.available && LOOKS.some((item) => item.id === row.selected)) {
+          look = row.selected;
+          lookReady = true;
+        }
       } catch (err) {
         console.error(err);
       }
     }
+    if (!bridge()) lookReady = true;
+    showLook();
     renderSeedPicker();
     initField();
     initStars();
