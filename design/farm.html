@@ -21,7 +21,7 @@
     position: relative;
     width: 420px;
     background: #9ad8ff;
-    aspect-ratio: 9 / 16;
+    height: 589px;
     overflow: hidden;
     border-radius: 16px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
@@ -164,7 +164,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 60%;
+    height: 407px;
     z-index: 1;
     overflow: hidden;
   }
@@ -184,7 +184,7 @@
   .field-panel {
     position: absolute;
     left: 50%;
-    bottom: 22%;
+    top: 203px;
     width: 86%;
     transform: translateX(-50%);
     background: linear-gradient(180deg, #c8925a 0%, #a67c52 100%);
@@ -252,7 +252,7 @@
   .farm-top-left {
     position: absolute;
     left: 10px;
-    top: 32%;
+    top: 119px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -451,10 +451,10 @@
     border-color: rgba(255, 255, 255, 0.18);
   }
 
-  /* 田上一排：亮度、麦克风、收音机、Wi-Fi。本机没有的藏起来。 */
+  /* 田下一排：亮度、麦克风、收音机、Wi-Fi。本机没有的藏起来。 */
   .yard {
     position: absolute;
-    top: calc(40% + 78% * 0.6 + 8px);
+    top: 505px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 8;
@@ -583,10 +583,10 @@
     <div class="farm-area">
       <div class="farm-grass"></div>
       <div class="night-veil" id="nightVeil"></div>
+    </div>
 
-      <div class="field-panel">
-        <div class="field" id="field"></div>
-      </div>
+    <div class="field-panel">
+      <div class="field" id="field"></div>
     </div>
 
     <div class="farm-top-left">
@@ -674,7 +674,7 @@
 
   // 一天 24 小时沿一条弧线走完：东升，正午到顶，西沉。
   // 18 点起太阳沉下去，月亮从弧线东端升起，接同一条轨迹。
-  const ARC = { left: 6, right: 78, top: 3, bottom: 30 };
+  const ARC = { left: 6, right: 78, top: 2, bottom: 20 };
   const DAY_START = 6;
   const DAY_END = 18;
   // 8 点太阳在弧线东侧，21 点月亮在弧线西侧，天空已经全黑
@@ -1058,17 +1058,24 @@
     // 先记下，等田铺完再显示。铺田时音量没变，不能把静音清掉。
     let wasMuted = null;
     if (c) {
-      try {
-        const volume = await c.getVolume();
+      // 每一项单独读。一项读失败不能把已经读到的藏起来，
+      // 音量读失败也不能挡住下面的麦克风、收音机、Wi-Fi 和外观。
+      const read = async (fn) => {
+        try { return await fn(); } catch (err) { console.error(err); return null; }
+      };
+      const volume = await read(() => c.getVolume());
+      if (volume) {
         level = Math.max(0, Math.min(100, Math.round(volume.level)));
         wasMuted = !!volume.muted;
-        const state = await c.getState();
-        if (state.brightnessAvailable) {
-          bright = Math.max(0, Math.min(100, Math.round(state.brightness)));
-          brightReady = true;
-        }
-        const listed = await c.listControls();
-        const byId = (id) => (listed || []).find((item) => item.id === id);
+      }
+      const state = await read(() => c.getState());
+      if (state && state.brightnessAvailable) {
+        bright = Math.max(0, Math.min(100, Math.round(state.brightness)));
+        brightReady = true;
+      }
+      const listed = await read(() => c.listControls());
+      if (listed) {
+        const byId = (id) => listed.find((item) => item.id === id);
         const lookRow = byId("appearance");
         if (lookRow && lookRow.available && LOOKS.some((item) => item.id === lookRow.selected)) {
           look = lookRow.selected;
@@ -1088,8 +1095,6 @@
           const row = byId("media." + key);
           return row && row.available;
         });
-      } catch (err) {
-        console.error(err);
       }
     }
     // 浏览器里直接打开没有桥，四项都露出来，只改页面。
