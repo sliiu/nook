@@ -112,6 +112,9 @@ const MARKET_CALLS = new Set([
   "noteDrag",
   "noteIdle",
   "setFlyoutSize",
+  "sceneData",
+  "setSceneData",
+  "currentScene",
 ]);
 const MARKET_EVENTS = [
   ["stateChanged", "state-changed"],
@@ -270,6 +273,9 @@ function bridgeSource() {
     noteDrag: (dragging) => call("noteDrag", [dragging]),
     noteIdle: () => call("noteIdle", []),
     setFlyoutSize: (w, h) => call("setFlyoutSize", [w, h]),
+    sceneData: (id) => call("sceneData", [id || ""]),
+    setSceneData: (id, value) => call("setSceneData", [id || "", value]),
+    currentScene: () => call("currentScene", []),
   };
   const listeners = { "state-changed": new Set(), "pill-form": new Set() };
   const listen = (name) => (fn) => {

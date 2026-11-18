@@ -98,14 +98,13 @@ func (b darwinBackend) Level() (Level, error) {
 	if err != nil {
 		return Level{Percent: 0, Muted: false, Adjustable: false}, nil
 	}
-	if b.readMute(device) {
-		return Level{Percent: 0, Muted: true, Adjustable: true}, nil
-	}
 	scalar, err := readF32(device, address)
 	if err != nil {
 		return Level{}, err
 	}
-	return Level{Percent: ScalarToPercent(scalar), Muted: false, Adjustable: true}, nil
+	// Mute hides the level at the speakers. The reading keeps the percent, so a
+	// scene can show the muted state without the level looking like it fell to 0.
+	return Level{Percent: ScalarToPercent(scalar), Muted: b.readMute(device), Adjustable: true}, nil
 }
 
 func (b darwinBackend) Set(percent int) error {

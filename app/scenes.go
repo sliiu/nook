@@ -135,6 +135,32 @@ func (c *Control) CurrentScene() (SceneView, error) {
 	return view(s.Current()), nil
 }
 
+// SceneData returns what the scene stored for itself. An empty id reads the
+// scene the flyout is showing.
+func (c *Control) SceneData(id string) (string, error) {
+	s, err := c.store()
+	if err != nil {
+		return "", err
+	}
+	if id == "" {
+		id = s.Current().ID
+	}
+	return s.SceneData(id), nil
+}
+
+// SetSceneData remembers value for the scene. An empty id writes the scene
+// the flyout is showing.
+func (c *Control) SetSceneData(id, value string) error {
+	s, err := c.store()
+	if err != nil {
+		return err
+	}
+	if id == "" {
+		id = s.Current().ID
+	}
+	return s.SetSceneData(id, value)
+}
+
 // SelectScene switches the flyout scene.
 func (c *Control) SelectScene(id string) error {
 	s, err := c.store()

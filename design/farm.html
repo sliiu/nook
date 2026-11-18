@@ -801,7 +801,25 @@
     plot.querySelector(".crop-display").textContent = "";
   }
 
+  let plots = [];
+
+  function seedByIcon(icon) {
+    return SEEDS.find((seed) => seed.icon === icon);
+  }
+
+  function rememberPlots() {
+    const c = bridge();
+    if (!c || !c.setSceneData || !c.currentScene) return;
+    const value = JSON.stringify({
+      plots: Array.from({ length: TOTAL_PLOTS }, (_, i) => (seedByIcon(plots[i]) || {}).id || ""),
+    });
+    settle(c.currentScene().then((view) => c.setSceneData(view.id, value)));
+  }
+
   function initField() {
+    field.replaceChildren();
+    plantedCount = 0;
+    plots = [];
     for (let i = 0; i < TOTAL_PLOTS; i++) {
       const plot = document.createElement("div");
       plot.className = "plot";
@@ -813,16 +831,19 @@
         const next = level + (plot.dataset.planted === "0" ? STEP : -STEP);
         if (next < 0 || next > 100) return;
         if (plot.dataset.planted === "0") {
-          plant(plot, SEEDS[currentSeedIndex].icon);
+          const icon = SEEDS[currentSeedIndex].icon;
+          plant(plot, icon);
+          plots[i] = icon;
           plantedCount += 1;
         } else {
           clearPlot(plot);
+          plots[i] = "";
           plantedCount -= 1;
         }
         level = next;
-        if (muted && level > 0) setMuted(false);
         updateVolume();
         writeVolume(level);
+        rememberPlots();
       });
       field.appendChild(plot);
     }
@@ -1001,35 +1022,47 @@
 
   function applyLevel(value) {
     const next = Math.max(0, Math.min(100, Math.round(value)));
+    // 静音时音量读数不变。只有音量真的变了，才是用户把声音开了回来。
     if (muted) {
-      if (next === 0) return;
+      if (next === level) return;
       setMuted(false);
     }
     if (next === level) return;
     const all = [...field.querySelectorAll(".plot")];
     const want = Math.round(next / STEP);
+    let changed = false;
     while (plantedCount < want) {
-      const plot = all.find((p) => p.dataset.planted === "0");
-      if (!plot) break;
-      plant(plot, SEEDS[currentSeedIndex].icon);
+      const at = all.findIndex((p) => p.dataset.planted === "0");
+      if (at < 0) break;
+      const icon = SEEDS[currentSeedIndex].icon;
+      plant(all[at], icon);
+      plots[at] = icon;
       plantedCount += 1;
+      changed = true;
     }
     while (plantedCount > want) {
-      const plot = all.findLast((p) => p.dataset.planted === "1");
-      if (!plot) break;
-      clearPlot(plot);
+      const at = all.findLastIndex((p) => p.dataset.planted === "1");
+      if (at < 0) break;
+      clearPlot(all[at]);
+      plots[at] = "";
       plantedCount -= 1;
+      changed = true;
     }
     level = next;
     updateVolume();
+    if (changed) rememberPlots();
   }
 
   async function boot() {
     const c = bridge();
+    // 先记下，等田铺完再显示。铺田时音量没变，不能把静音清掉。
+    let wasMuted = null;
     if (c) {
       try {
+        const volume = await c.getVolume();
+        level = Math.max(0, Math.min(100, Math.round(volume.level)));
+        wasMuted = !!volume.muted;
         const state = await c.getState();
-        level = Math.max(0, Math.min(100, Math.round(state.volume)));
         if (state.brightnessAvailable) {
           bright = Math.max(0, Math.min(100, Math.round(state.brightness)));
           brightReady = true;
@@ -1068,6 +1101,17 @@
       wifiOn = true;
       radio.hidden = false;
     }
+    let saved = null;
+    if (c && c.sceneData && c.currentScene) {
+      try {
+        const view = await c.currentScene();
+        const raw = await c.sceneData(view.id);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && Array.isArray(parsed.plots)) saved = parsed.plots;
+      } catch (err) {
+        console.error(err);
+      }
+    }
     showLook();
     showLamp();
     showChicken();
@@ -1077,9 +1121,26 @@
     initField();
     initStars();
     applyMode();
-    const start = level;
+    const readLevel = level;
+    const remembered = saved && saved.filter((id) => SEEDS.some((seed) => seed.id === id)).length;
+    // 铺田前先对齐。否则上一次留下的音量会被当成这次变了，把刚读回的静音清掉。
     level = -1;
-    applyLevel(start);
+    // 记住的田只在块数仍和音量对得上时用。音量在别处改过就按音量重铺。
+    if (remembered === Math.round(readLevel / STEP)) {
+      const all = [...field.querySelectorAll(".plot")];
+      plots = all.map((_, i) => {
+        const seed = SEEDS.find((item) => item.id === saved[i]);
+        if (!seed) return "";
+        plant(all[i], seed.icon);
+        plantedCount += 1;
+        return seed.icon;
+      });
+      updateVolume();
+    } else {
+      applyLevel(readLevel);
+    }
+    // 铺完再显示。铺田会把音量变化当成开了声音，不能让它清掉刚读回的静音。
+    if (wasMuted !== null) setMuted(wasMuted);
   }
 
   boot();

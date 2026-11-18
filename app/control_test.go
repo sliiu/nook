@@ -28,9 +28,6 @@ func (f *fakeAudio) Set(percent int) error {
 func (f *fakeAudio) SetMute(muted bool) error {
 	f.mutes = append(f.mutes, muted)
 	f.level.Muted = muted
-	if muted {
-		f.level.Percent = 0
-	}
 	return nil
 }
 func (f *fakeAudio) DefaultKey() (*uint64, error) {

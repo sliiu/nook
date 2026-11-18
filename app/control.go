@@ -125,8 +125,8 @@ func AttachCatalog(c *Control, catalog []controls.Control) {
 	c.mu.Unlock()
 }
 
-// GetVolume returns the default output percent, 0–100. A muted device reads
-// as 0.
+// GetVolume returns the default output percent, 0–100. Mute is reported on
+// its own; the percent stays at the level the device is set to.
 func (c *Control) GetVolume() (LevelRow, error) {
 	level, err := c.audio.Level()
 	if err != nil {

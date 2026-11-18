@@ -61,10 +61,11 @@ type file struct {
 
 // Store is safe for concurrent use.
 type Store struct {
-	mu      sync.Mutex
-	path    string
-	factory string
-	data    file
+	mu        sync.Mutex
+	path      string
+	factory   string
+	data      file
+	sceneData map[string]string
 }
 
 // Open loads path, seeding or repairing it so home always exists. A missing
@@ -78,6 +79,7 @@ func Open(path, factoryHTML string) (*Store, error) {
 	if err := s.save(); err != nil {
 		return nil, err
 	}
+	s.loadSceneData()
 	return s, nil
 }
 
@@ -137,6 +139,64 @@ func (s *Store) save() error {
 		return err
 	}
 	return os.Rename(tmp, s.path)
+}
+
+// sceneDataLimit is how much one scene may remember. A scene's own state is
+// a short string, and the file sits beside scenes.json, not inside it.
+const sceneDataLimit = 4096
+
+func (s *Store) sceneDataPath() string {
+	return filepath.Join(filepath.Dir(s.path), "scene-data.json")
+}
+
+func (s *Store) loadSceneData() {
+	s.sceneData = map[string]string{}
+	raw, err := os.ReadFile(s.sceneDataPath())
+	if err != nil {
+		return
+	}
+	_ = json.Unmarshal(raw, &s.sceneData)
+	if s.sceneData == nil {
+		s.sceneData = map[string]string{}
+	}
+}
+
+// SceneData returns what the scene stored for itself. An unknown or empty
+// scene reads as an empty string.
+func (s *Store) SceneData(id string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.sceneData[id]
+}
+
+// SetSceneData remembers value for the scene. A value over the limit is
+// refused and the stored one is left as it was.
+func (s *Store) SetSceneData(id, value string) error {
+	if len(value) > sceneDataLimit {
+		return ErrHTMLLarge
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.index(id) < 0 {
+		return ErrNotFound
+	}
+	if s.sceneData == nil {
+		s.sceneData = map[string]string{}
+	}
+	if value == "" {
+		delete(s.sceneData, id)
+	} else {
+		s.sceneData[id] = value
+	}
+	raw, err := json.MarshalIndent(s.sceneData, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := s.sceneDataPath() + ".tmp"
+	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, s.sceneDataPath())
 }
 
 func (s *Store) index(id string) int {
