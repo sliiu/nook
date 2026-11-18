@@ -253,11 +253,9 @@
     position: absolute;
     left: 10px;
     top: 32%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
     z-index: 8;
   }
+
 
   .global-seed-picker {
     background: linear-gradient(180deg, #f2c06b 0%, #d99a3a 100%);
@@ -290,6 +288,10 @@
   .seed-option.selected { background: #9be77b; border-color: #2b7d20; }
 
   .scarecrow {
+    position: absolute;
+    right: 10px;
+    top: 32%;
+    z-index: 8;
     font-size: 44px;
     cursor: pointer;
     transition: transform 0.2s ease, filter 0.4s linear;
@@ -429,25 +431,6 @@
     transition: background 0.4s linear, color 0.4s linear, border-color 0.4s linear;
   }
 
-  .tip {
-    position: absolute;
-    left: 50%;
-    bottom: 14px;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-radius: 999px;
-    padding: 8px 12px;
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.7);
-    z-index: 10;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    max-width: 90%;
-    text-align: center;
-    transition: background 0.4s linear, color 0.4s linear, border-color 0.4s linear;
-  }
-
   /* 一层月光，不要在地块上叠乘 brightness，否则作物会黑掉 */
   .night-veil {
     position: absolute;
@@ -462,7 +445,6 @@
   }
 
   .night-mode .status-bar,
-  .night-mode .tip,
   .night-mode .time-label,
   .night-mode .look-badge {
     background: rgba(20, 30, 60, 0.55);
@@ -470,8 +452,112 @@
     border-color: rgba(255, 255, 255, 0.18);
   }
 
+  /* 田上一排：亮度、麦克风、收音机、Wi-Fi。本机没有的藏起来。 */
+  .yard {
+    position: absolute;
+    top: calc(40% + 78% * 0.6 + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    background: linear-gradient(180deg, #f2c06b 0%, #d99a3a 100%);
+    border: 4px solid #6b4423;
+    border-radius: 16px;
+    box-shadow: 0 4px 0 #6b4423;
+  }
+
+  .yard[hidden],
+  .yard-btn[hidden],
+  .radio[hidden] { display: none; }
+
+  .yard button {
+    font: inherit;
+    color: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .yard-btn {
+    width: 44px;
+    height: 44px;
+    border: 3px solid #6b4423;
+    border-radius: 12px;
+    background: #fff7d6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .yard-btn:active { transform: translateY(2px); }
+
+  .lamp { box-shadow: 0 0 calc(var(--glow, 0) * 14px) rgba(255, 196, 60, var(--glow, 0)); }
+  .lamp .glyph { font-size: 16px; }
+  .lamp .pct { font-size: 9px; margin-top: 1px; color: #6b4423; }
+
+  .chicken { font-size: 20px; }
+  .chicken.muted { filter: grayscale(1); }
+  .chicken.muted .glyph { position: relative; }
+  .chicken.muted .glyph::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 18px;
+    height: 3px;
+    background: #c7507a;
+    border-radius: 2px;
+    transform: translate(-50%, -50%) rotate(-35deg);
+  }
+
+  .radio {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background: #fff7d6;
+    border: 3px solid #6b4423;
+  }
+
+  .radio button {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .radio button:active,
+  .radio button.tap { background: #9be77b; }
+
+  .windmill .glyph {
+    display: inline-block;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .windmill.on .glyph { animation: mill 1.6s linear infinite; }
+  .windmill:not(.on) { opacity: 0.5; }
+  .windmill.shake { animation: refuse 0.35s ease; }
+
+  @keyframes mill { to { transform: rotate(1turn); } }
+  @keyframes refuse {
+    0%, 100% { transform: translateX(0); }
+    30% { transform: translateX(-4px); }
+    70% { transform: translateX(4px); }
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .star, .cloud, .scarecrow.shushing { animation: none; }
+    .star, .cloud, .scarecrow.shushing, .windmill.on .glyph { animation: none; }
+    .windmill.shake { animation: none; background: #ffb3c6; }
   }
 </style>
 </head>
@@ -506,13 +592,32 @@
 
     <div class="farm-top-left">
       <div class="global-seed-picker" id="globalSeedPicker"></div>
-      <div class="scarecrow" id="scarecrow" title="点击静音">
-        <div class="scarecrow-body">
-          🎃
-          <div class="tape-x"></div>
-          <div class="mute-icon">🔇 已静音</div>
-        </div>
+    </div>
+
+    <div class="scarecrow" id="scarecrow" title="点击静音">
+      <div class="scarecrow-body">
+        🎃
+        <div class="tape-x"></div>
+        <div class="mute-icon">🔇 已静音</div>
       </div>
+    </div>
+
+    <div class="yard" id="yard" hidden>
+      <button class="yard-btn lamp" id="lamp" type="button" hidden title="点一下，亮度加 25%">
+        <span class="glyph">💡</span>
+        <span class="pct" id="lampPct">0</span>
+      </button>
+      <button class="yard-btn chicken" id="chicken" type="button" hidden title="麦克风静音">
+        <span class="glyph">🐔</span>
+      </button>
+      <div class="radio" id="radio" hidden>
+        <button type="button" data-media="previous" title="收音机：上一首">⏪</button>
+        <button type="button" data-media="toggle" title="收音机：播放或暂停">▶︎</button>
+        <button type="button" data-media="next" title="收音机：下一首">⏩</button>
+      </div>
+      <button class="yard-btn windmill" id="windmill" type="button" hidden title="风车管 Wi-Fi">
+        <span class="glyph">💨</span>
+      </button>
     </div>
 
     <div class="time-label" id="timeLabel">06:00 早晨</div>
@@ -526,9 +631,6 @@
 
     <button class="look-badge" id="lookBadge" type="button" hidden>🌤️ 浅色</button>
 
-    <div class="tip">
-南瓜静音 · 选种子播种+5%，收割-5%
-    </div>
   </div>
 
 <script>
@@ -791,6 +893,95 @@
     if (c) settle(c.setControl("appearance", { selected: value }));
   }
 
+  const lamp = document.getElementById("lamp");
+  const lampPct = document.getElementById("lampPct");
+  const chicken = document.getElementById("chicken");
+  const radio = document.getElementById("radio");
+  const windmill = document.getElementById("windmill");
+  const yard = document.getElementById("yard");
+
+  let bright = 0;
+  let brightReady = false;
+  let micMuted = false;
+  let micReady = false;
+  let wifiOn = false;
+  let wifiReady = false;
+
+  function showLamp() {
+    lamp.hidden = !brightReady;
+    lamp.style.setProperty("--glow", (bright / 100).toFixed(2));
+    lampPct.textContent = String(bright);
+    lamp.title = "亮度 " + bright + "%，点一下加 25%";
+  }
+
+  function showChicken() {
+    chicken.hidden = !micReady;
+    chicken.classList.toggle("muted", micMuted);
+    chicken.title = micMuted ? "麦克风已静音" : "麦克风开着";
+  }
+
+  function showWind() {
+    windmill.hidden = !wifiReady;
+    windmill.classList.toggle("on", wifiOn);
+    windmill.title = wifiOn ? "Wi-Fi 开着" : "Wi-Fi 关着";
+  }
+
+  function showYard() {
+    yard.hidden = lamp.hidden && chicken.hidden && radio.hidden && windmill.hidden;
+  }
+
+  function writeBright(value) {
+    const c = bridge();
+    if (c) settle(c.setBrightness(value));
+  }
+
+  lamp.addEventListener("click", () => {
+    if (!brightReady) return;
+    bright = (Math.floor(bright / 25) * 25 + 25) % 125;
+    showLamp();
+    writeBright(bright);
+  });
+
+  chicken.addEventListener("click", () => {
+    if (!micReady) return;
+    micMuted = !micMuted;
+    showChicken();
+    const c = bridge();
+    if (!c) return;
+    settle(c.setControl("input.level", { muted: micMuted }).catch(() => {
+      micMuted = !micMuted;
+      showChicken();
+    }));
+  });
+
+  radio.addEventListener("click", (event) => {
+    const key = event.target.dataset && event.target.dataset.media;
+    if (!key) return;
+    event.target.classList.add("tap");
+    setTimeout(() => event.target.classList.remove("tap"), 160);
+    const c = bridge();
+    if (c) settle(c.setControl("media." + key, {}));
+  });
+
+  windmill.addEventListener("click", () => {
+    if (!wifiReady) return;
+    const next = !wifiOn;
+    const c = bridge();
+    if (!c) {
+      wifiOn = next;
+      showWind();
+      return;
+    }
+    settle(c.setControl("wifi.power", { on: next }).then(() => {
+      wifiOn = next;
+      showWind();
+    }, () => {
+      windmill.classList.remove("shake");
+      void windmill.offsetWidth;
+      windmill.classList.add("shake");
+    }));
+  });
+
   lookBadge.addEventListener("click", () => {
     if (!lookReady) return;
     const at = LOOKS.findIndex((row) => row.id === look);
@@ -800,9 +991,14 @@
   });
 
   // 系统音量变了（键盘、另一台设备）就重排田块，让作物数重新对上音量。
+  // 亮度键走同一条事件，灯跟着变。
   window.events?.stateChanged.on((change) => {
-    if (change.source !== "external" || typeof change.volume !== "number") return;
-    applyLevel(change.volume);
+    if (change.source !== "external") return;
+    if (typeof change.volume === "number") applyLevel(change.volume);
+    if (typeof change.brightness === "number" && brightReady) {
+      bright = Math.max(0, Math.min(100, Math.round(change.brightness)));
+      showLamp();
+    }
   });
 
   function applyLevel(value) {
@@ -836,18 +1032,49 @@
       try {
         const state = await c.getState();
         level = Math.max(0, Math.min(100, Math.round(state.volume)));
+        if (state.brightnessAvailable) {
+          bright = Math.max(0, Math.min(100, Math.round(state.brightness)));
+          brightReady = true;
+        }
         const listed = await c.listControls();
-        const row = (listed || []).find((item) => item.id === "appearance");
-        if (row && row.available && LOOKS.some((item) => item.id === row.selected)) {
-          look = row.selected;
+        const byId = (id) => (listed || []).find((item) => item.id === id);
+        const lookRow = byId("appearance");
+        if (lookRow && lookRow.available && LOOKS.some((item) => item.id === lookRow.selected)) {
+          look = lookRow.selected;
           lookReady = true;
         }
+        const mic = byId("input.level");
+        if (mic && mic.available) {
+          micMuted = !!mic.muted;
+          micReady = true;
+        }
+        const wifi = byId("wifi.power");
+        if (wifi && wifi.available) {
+          wifiOn = !!wifi.on;
+          wifiReady = true;
+        }
+        radio.hidden = !["previous", "toggle", "next"].every((key) => {
+          const row = byId("media." + key);
+          return row && row.available;
+        });
       } catch (err) {
         console.error(err);
       }
     }
-    if (!bridge()) lookReady = true;
+    // 浏览器里直接打开没有桥，四项都露出来，只改页面。
+    if (!bridge()) {
+      lookReady = true;
+      brightReady = true;
+      micReady = true;
+      wifiReady = true;
+      wifiOn = true;
+      radio.hidden = false;
+    }
     showLook();
+    showLamp();
+    showChicken();
+    showWind();
+    showYard();
     renderSeedPicker();
     initField();
     initStars();
