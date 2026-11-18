@@ -253,6 +253,9 @@
     position: absolute;
     left: 10px;
     top: 32%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
     z-index: 8;
   }
 
@@ -288,10 +291,6 @@
   .seed-option.selected { background: #9be77b; border-color: #2b7d20; }
 
   .scarecrow {
-    position: absolute;
-    right: 10px;
-    top: 32%;
-    z-index: 8;
     font-size: 44px;
     cursor: pointer;
     transition: transform 0.2s ease, filter 0.4s linear;
@@ -592,13 +591,12 @@
 
     <div class="farm-top-left">
       <div class="global-seed-picker" id="globalSeedPicker"></div>
-    </div>
-
-    <div class="scarecrow" id="scarecrow" title="点击静音">
-      <div class="scarecrow-body">
-        🎃
-        <div class="tape-x"></div>
-        <div class="mute-icon">🔇 已静音</div>
+      <div class="scarecrow" id="scarecrow" title="点击静音">
+        <div class="scarecrow-body">
+          🎃
+          <div class="tape-x"></div>
+          <div class="mute-icon">🔇 已静音</div>
+        </div>
       </div>
     </div>
 
