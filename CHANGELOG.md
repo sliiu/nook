@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.9
+
+- A catalog scene can read the volume. The farm keeps its control row and its look button when one of its reads fails.
+- The farm's sky ends between the seed bar and the field, and the window stops just under the control row.
+
 ## 0.1.8
 
 - The farm scene adds display brightness, the microphone, media keys and Wi-Fi. The mute pumpkin sits beside the seed bar.
