@@ -43,6 +43,41 @@ func TestCorruptFileIsReplacedByFactory(t *testing.T) {
 	}
 }
 
+func TestSceneDataSurvivesReopen(t *testing.T) {
+	s, path := open(t)
+	sc, err := s.Save("", "Night", "<b>x</b>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Select(sc.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetSceneData(sc.ID, `{"plots":["carrot"]}`); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.SceneData(sc.ID); got != `{"plots":["carrot"]}` {
+		t.Fatalf("stored %q", got)
+	}
+
+	reopened, err := Open(path, "<p>factory</p>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reopened.SceneData(HomeID); got != "" {
+		t.Fatalf("home should have nothing stored, got %q", got)
+	}
+	if got := reopened.SceneData(sc.ID); got != `{"plots":["carrot"]}` {
+		t.Fatalf("reopened %q", got)
+	}
+
+	if err := s.SetSceneData(sc.ID, strings.Repeat("a", 4097)); err == nil {
+		t.Fatal("over the limit should be refused")
+	}
+	if got := s.SceneData(sc.ID); got != `{"plots":["carrot"]}` {
+		t.Fatalf("refused write changed the stored value to %q", got)
+	}
+}
+
 func TestSaveCreateUpdatePersist(t *testing.T) {
 	s, path := open(t)
 	sc, err := s.Save("", "Night", "<b>x</b>")

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8
+
+- The farm scene adds display brightness, the microphone, media keys and Wi-Fi. The mute pumpkin sits beside the seed bar.
+- A scene can keep a short note of its own. The farm remembers which plot grows what, and opening reads the mute back. A muted device still reports its level.
+
 ## 0.1.7
 
 - Installing a catalog scene no longer asks api.github.com for the branch tip, so a shared address that has used its 60 requests still installs.

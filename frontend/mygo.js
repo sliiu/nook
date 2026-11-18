@@ -36,6 +36,12 @@ export const Control = {
   setFlyoutSize(w, h) {
     return call("Control.SetFlyoutSize", w, h);
   },
+  sceneData(id) {
+    return call("Control.SceneData", id || "");
+  },
+  setSceneData(id, value) {
+    return call("Control.SetSceneData", id || "", value);
+  },
   getLang() {
     return call("Control.GetLang");
   },
