@@ -56,7 +56,7 @@ Ask what the scene should do and look like before writing it. Keep it to one scr
 `Control` and `events` are globals. Every call returns a promise.
 
 - `Control.getState()` returns `{ volume, brightness, brightnessAvailable }`. Read this once at start.
-- `Control.listControls()` returns every control: `{ id, kind, available, adjustable, percent, muted, on, selected, options }`. `kind` is `level`, `switch`, `choice` or `action`. `options` is `{ id, label }`. The ids are `output.level`, `display.level`, `input.level`, `keyboard.level`, `output.device`, `media.previous`, `media.toggle`, `media.next`, `appearance` and `wifi.power`. An unavailable control stays in the list with `available: false`; show it, do not hide it or invent a value.
+- `Control.listControls()` returns every control: `{ id, kind, available, adjustable, percent, muted, on, selected, options }`. `kind` is `level`, `switch`, `choice` or `action`. `options` is `{ id, label }`. The ids are `output.level`, `display.level`, `input.level`, `keyboard.level`, `output.device`, `media.previous`, `media.toggle`, `media.next`, `media.nowplaying`, `appearance` and `wifi.power`. `media.nowplaying` is read only. Its `selected` is `playing`, `paused` or `stopped`, and its `options` name the track in order: `{ id: "title" }`, `{ id: "artist" }`, `{ id: "app" }`, each only when the system gave one. macOS 26 gives none, so the list is empty while something plays. A write to it is refused. An unavailable control stays in the list with `available: false`; show it, do not hide it or invent a value.
 - `Control.setControl(id, write)` changes one control. `write` carries only the fields that change: `{ percent }`, `{ muted }`, `{ on }` or `{ selected }`. An action takes an empty write. A refused write rejects the promise.
 - `Control.getVolume()` returns `{ level, muted, adjustable }`. `level` is 0–100.
 - `Control.setVolume(level)` sets the output volume. A non-zero write unmutes.
@@ -69,7 +69,7 @@ Ask what the scene should do and look like before writing it. Keep it to one scr
 
 Two events, each with `.on(fn)`, which returns an unsubscribe function:
 
-- `events.stateChanged` fires when volume or brightness changes outside the page. The payload is `{ source, volume, brightness }`, and `source` is `"external"` for a change the page did not make. Ignore `source: "user"` or the page echoes its own writes. Either number may be absent.
+- `events.stateChanged` fires when volume or brightness changes outside the page. The payload is `{ source, volume, brightness, nowPlaying }`, and `source` is `"external"` for a change the page did not make. Ignore `source: "user"` or the page echoes its own writes. Any field may be absent. `nowPlaying` is `{ playing, state, title, artist, app }` and arrives when what is playing changes. `playing` is true only while sound comes out. The strings are empty when the system did not name the track.
 - `events.pillForm` fires with `{ form }`, one of `"full"`, `"short"`, `"hidden"`.
 
 Levels are integers from 0 to 100. Clamp before sending.

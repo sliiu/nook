@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- A scene can read what is playing. The state comes through; macOS 26 does not name the track. The farm shows it above the radio.
+
 ## 0.1.9
 
 - A catalog scene can read the volume. The farm keeps its control row and its look button when one of its reads fails.

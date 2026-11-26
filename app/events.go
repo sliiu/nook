@@ -30,6 +30,24 @@ type StateChange struct {
 	Source     string `json:"source"` // "user" | "external"
 	Volume     *int   `json:"volume,omitempty"`
 	Brightness *int   `json:"brightness,omitempty"`
+	// NowPlaying is set when what is playing changed. Nil means it did not;
+	// a value with Playing false means playback stopped.
+	NowPlaying *NowPlaying `json:"nowPlaying,omitempty"`
+}
+
+// NowPlaying is the current player, as a scene reads it.
+type NowPlaying struct {
+	// Playing is true only while sound is coming out. Paused and stopped
+	// are both false, and State tells them apart.
+	Playing bool `json:"playing"`
+	// State is "playing", "paused" or "stopped".
+	State string `json:"state"`
+	// Title and Artist are empty when the system did not name the track,
+	// which is what macOS 26 does for a process without the entitlement.
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
+	// App is the player, such as "Music". Empty when it was not named.
+	App string `json:"app"`
 }
 
 // FormPayload is the flyout form name.

@@ -33,6 +33,7 @@ func Desktop(h Hardware) []Control {
 		mediaAction(h.Media, specMediaPrevious),
 		mediaAction(h.Media, specMediaToggle),
 		mediaAction(h.Media, specMediaNext),
+		mediaNowPlaying(),
 		FromKeyboard(h.Keyboard),
 		FromSystem(h.Appearance, specAppearance),
 		FromPower(h.WiFi, specWiFi),
@@ -40,16 +41,17 @@ func Desktop(h Hardware) []Control {
 }
 
 var (
-	specOutput        = Spec{ID: OutputLevel, Kind: KindLevel, Mute: true}
-	specDisplay       = Spec{ID: DisplayLevel, Kind: KindLevel}
-	specInput         = Spec{ID: InputLevel, Kind: KindLevel, Mute: true}
-	specDevice        = Spec{ID: OutputDevice, Kind: KindChoice}
-	specMediaPrevious = Spec{ID: MediaPrevious, Kind: KindAction}
-	specMediaToggle   = Spec{ID: MediaToggle, Kind: KindAction}
-	specMediaNext     = Spec{ID: MediaNext, Kind: KindAction}
-	specKeyboard      = Spec{ID: KeyboardLevel, Kind: KindLevel}
-	specAppearance    = Spec{ID: Appearance, Kind: KindChoice}
-	specWiFi          = Spec{ID: WiFiPower, Kind: KindSwitch}
+	specOutput          = Spec{ID: OutputLevel, Kind: KindLevel, Mute: true}
+	specDisplay         = Spec{ID: DisplayLevel, Kind: KindLevel}
+	specInput           = Spec{ID: InputLevel, Kind: KindLevel, Mute: true}
+	specDevice          = Spec{ID: OutputDevice, Kind: KindChoice}
+	specMediaPrevious   = Spec{ID: MediaPrevious, Kind: KindAction}
+	specMediaToggle     = Spec{ID: MediaToggle, Kind: KindAction}
+	specMediaNext       = Spec{ID: MediaNext, Kind: KindAction}
+	specMediaNowPlaying = Spec{ID: MediaNowPlaying, Kind: KindChoice}
+	specKeyboard        = Spec{ID: KeyboardLevel, Kind: KindLevel}
+	specAppearance      = Spec{ID: Appearance, Kind: KindChoice}
+	specWiFi            = Spec{ID: WiFiPower, Kind: KindSwitch}
 )
 
 // FromAudio adapts the default-output backend. A nil backend is unavailable.
@@ -119,6 +121,11 @@ func mediaAction(b media.Backend, spec Spec) Control {
 	}
 	return mediaControl{b, spec}
 }
+
+// mediaNowPlaying reads the current player. It needs no backend of its own:
+// the read goes straight to the platform, and a platform without one reports
+// the control unavailable.
+func mediaNowPlaying() Control { return nowPlaying{} }
 
 type levelControl struct {
 	b    audio.Backend
@@ -350,6 +357,51 @@ func (m mediaControl) Apply(Update) error {
 		return ErrUnavailable
 	}
 	return m.b.Send(media.Command(m.spec.ID))
+}
+
+// nowPlaying is the read-only player state. Its selected id is the transport
+// state. The options carry the track, in order: the title, the artist, then
+// the player. A platform that names none of them leaves the list empty.
+type nowPlaying struct{}
+
+func (nowPlaying) Spec() Spec { return specMediaNowPlaying }
+
+func (nowPlaying) Available() bool {
+	value, err := nowPlaying{}.Read()
+	return err == nil && value.Available
+}
+
+func (nowPlaying) Read() (Value, error) {
+	playing, err := media.NowPlaying()
+	if err != nil {
+		return Value{}, err
+	}
+	if playing.State == "" {
+		return Value{}, nil
+	}
+	return Value{
+		Available: true,
+		Selected:  string(playing.State),
+		Options:   trackOptions(playing),
+	}, nil
+}
+
+func (nowPlaying) Apply(Update) error { return ErrUnavailable }
+
+// trackOptions lists the parts the platform actually named, so a scene can
+// show them in order and skip the gaps.
+func trackOptions(playing media.Playback) []Option {
+	var out []Option
+	if playing.Title != "" {
+		out = append(out, Option{ID: "title", Label: playing.Title})
+	}
+	if playing.Artist != "" {
+		out = append(out, Option{ID: "artist", Label: playing.Artist})
+	}
+	if playing.App != "" {
+		out = append(out, Option{ID: "app", Label: playing.App})
+	}
+	return out
 }
 
 func toOptions(in []system.Option) []Option {

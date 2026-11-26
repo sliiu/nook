@@ -34,9 +34,13 @@ const (
 	MediaPrevious ID = "media.previous"
 	MediaToggle   ID = "media.toggle"
 	MediaNext     ID = "media.next"
-	KeyboardLevel ID = "keyboard.level"
-	Appearance    ID = "appearance"
-	WiFiPower     ID = "wifi.power"
+	// MediaNowPlaying reads what is playing. It is a choice whose selected id
+	// is the playback state (playing, paused, stopped) and whose options name
+	// the track: title, then artist, then the player. Nothing is writable.
+	MediaNowPlaying ID = "media.nowplaying"
+	KeyboardLevel   ID = "keyboard.level"
+	Appearance      ID = "appearance"
+	WiFiPower       ID = "wifi.power"
 )
 
 var (
