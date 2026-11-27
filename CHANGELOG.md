@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.1.10
 
 - A scene can read what is playing. The state comes through; macOS 26 does not name the track. The farm shows it above the radio.
+- The farm shows the volume it read. Remembered plots no longer leave the badge at -1%.
 
 ## 0.1.9
 
