@@ -1045,15 +1045,30 @@
     if (change.nowPlaying) showTrack(change.nowPlaying);
   });
 
-  // The track names what is playing. The system often withholds the title, so
-  // the state stands in: playing, paused, or nothing when it stopped.
+  // The track names what is playing. A control row keeps the state in
+  // `selected` and the names in `options`; the live event already uses the
+  // plain names. The system often withholds the title, so the state stands
+  // in: playing, paused, or nothing when it stopped.
   function showTrack(playing) {
-    const named = [playing.title, playing.artist].filter(Boolean).join(" · ");
-    const text = named || { playing: "播放中", paused: "已暂停" }[playing.state] || "";
+    const named = trackName(playing);
+    const state = playing.state || playing.selected || "";
+    const text = named || { playing: "播放中", paused: "已暂停" }[state] || "";
     track.hidden = !text;
     track.textContent = text;
     const toggle = radio.querySelector('[data-media="toggle"]');
-    if (toggle) toggle.textContent = playing.state === "playing" ? "⏸" : "▶︎";
+    if (toggle) toggle.textContent = state === "playing" ? "⏸" : "▶︎";
+  }
+
+  function trackName(playing) {
+    if (playing.title || playing.artist) {
+      return [playing.title, playing.artist].filter(Boolean).join(" · ");
+    }
+    const options = Array.isArray(playing.options) ? playing.options : [];
+    const label = (id) => {
+      const found = options.find((option) => option.id === id);
+      return found ? found.label : "";
+    };
+    return [label("title"), label("artist")].filter(Boolean).join(" · ");
   }
 
   function applyLevel(value) {
