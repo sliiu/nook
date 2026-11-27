@@ -1193,6 +1193,8 @@
         plantedCount += 1;
         return seed.icon;
       });
+      // -1 只让重铺看见变化。田对得上就不走重铺，读数要写回去。
+      level = readLevel;
       updateVolume();
     } else {
       applyLevel(readLevel);
