@@ -38,3 +38,10 @@
 - 麦克风是 `audio.NewInput`：macOS 走默认输入设备的 CoreAudio 输入端；没有输入设备时控制项不可用，不阻止启动。只读冒烟是 `cmd/controlsmoke`。
 - 场景用 `ListControls` / `SetControl` 读和写整个目录。`GetVolume` / `GetBrightness` 保留。市场沙箱也能调到目录里的每一项。
 - 自己写的和导入的场景与应用同权限，可以关 Wi-Fi、切输出设备、改外观。
+
+## 已定：正在播放（2026-11-26）
+
+- `media.nowplaying` 只读。`selected` 是 `playing` / `paused` / `stopped`，`options` 按顺序带 `title`、`artist`、`app`，系统没给的不出现。
+- macOS 26 的 MediaRemote 只回答播放状态，不给曲目。`MRMediaRemoteGetNowPlayingInfo` 回一个空字典，本机实测如此。读不到不当成失败，状态照常报。
+- 读取走 `dispatch_queue_create` 建的队列。传 nil 或 `NSOperationQueue` 回调不回来。
+- 播放变化走 `state-changed` 的 `nowPlaying`，不因此弹出 short 浮层。音量和亮度键才会。

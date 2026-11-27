@@ -9,6 +9,7 @@ import (
 	"pixel-control-center/internal/audio"
 	"pixel-control-center/internal/brightness"
 	"pixel-control-center/internal/controls"
+	"pixel-control-center/internal/media"
 	"pixel-control-center/internal/prefs"
 	"pixel-control-center/internal/scenes"
 )
@@ -87,11 +88,14 @@ type Control struct {
 	dragging   bool
 	hideAt     time.Time
 	hiding     bool
-	scenes     *scenes.Store
-	onScenes   func()
-	onSize     func(w, h int)
-	prefs      *prefs.Store
-	onLang     func()
+	// playing is the last now-playing snapshot the watcher announced.
+	// nil until the first read comes back.
+	playing  *NowPlaying
+	scenes   *scenes.Store
+	onScenes func()
+	onSize   func(w, h int)
+	prefs    *prefs.Store
+	onLang   func()
 }
 
 // NewControl wires backends and the tray shell. brightness may be nil; then
@@ -320,6 +324,7 @@ func (c *Control) poll() {
 type external struct {
 	volume     *int
 	brightness *int
+	playing    *NowPlaying
 }
 
 func (c *Control) takeExternal() (external, bool) {
@@ -334,6 +339,10 @@ func (c *Control) takeExternal() (external, bool) {
 	if bright, ok := c.takeBrightnessExternal(); ok {
 		b := bright
 		out.brightness = &b
+		changed = true
+	}
+	if playing, ok := c.takePlayingExternal(); ok {
+		out.playing = &playing
 		changed = true
 	}
 	return out, changed
@@ -400,6 +409,41 @@ func (c *Control) takeBrightnessExternal() (int, bool) {
 	return level.Percent, true
 }
 
+// takePlayingExternal reads what is playing. The first read only remembers
+// it, the same way the volume axis does, so opening the flyout does not
+// announce a change that was already there.
+func (c *Control) takePlayingExternal() (NowPlaying, bool) {
+	got, err := media.NowPlaying()
+	if err != nil {
+		return NowPlaying{}, false
+	}
+	next := nowPlayingFrom(got)
+	if c.playing == nil {
+		c.playing = &next
+		return NowPlaying{}, false
+	}
+	if samePlaying(*c.playing, next) {
+		return NowPlaying{}, false
+	}
+	c.playing = &next
+	return next, true
+}
+
+func nowPlayingFrom(got media.Playback) NowPlaying {
+	return NowPlaying{
+		Playing: got.Playing(),
+		State:   string(got.State),
+		Title:   got.Title,
+		Artist:  got.Artist,
+		App:     got.App,
+	}
+}
+
+func samePlaying(a, b NowPlaying) bool {
+	return a.Playing == b.Playing && a.State == b.State &&
+		a.Title == b.Title && a.Artist == b.Artist && a.App == b.App
+}
+
 func sameKey(a, b *uint64) bool {
 	if a == nil || b == nil {
 		return a == nil && b == nil
@@ -414,10 +458,13 @@ func (c *Control) showExternal(change external, form string) {
 				Source:     "external",
 				Volume:     change.volume,
 				Brightness: change.brightness,
+				NowPlaying: change.playing,
 			})
 		}
 	}
-	if form == "full" {
+	// A track change is not a reason to pop the flyout. Volume and
+	// brightness keys are, because the user just pressed one.
+	if form == "full" || (change.volume == nil && change.brightness == nil) {
 		return
 	}
 	c.mu.Lock()

@@ -29,7 +29,7 @@ func TestDesktopCatalog(t *testing.T) {
 
 	want := []Spec{
 		specOutput, specDisplay, specInput, specDevice,
-		specMediaPrevious, specMediaToggle, specMediaNext,
+		specMediaPrevious, specMediaToggle, specMediaNext, specMediaNowPlaying,
 		specKeyboard, specAppearance, specWiFi,
 	}
 	if len(list) != len(want) {
@@ -160,6 +160,25 @@ func TestSwitchChoiceAndAction(t *testing.T) {
 	}
 	if len(player.sent) != 1 || player.sent[0] != media.Next {
 		t.Fatalf("sent %v, want next", player.sent)
+	}
+
+	// The now-playing control is read only. A write is refused; the state it
+	// reads belongs to the platform, so the test only checks the shape.
+	reading := mediaNowPlaying()
+	if reading.Spec() != specMediaNowPlaying {
+		t.Fatalf("now playing spec %+v", reading.Spec())
+	}
+	if err := reading.Apply(Update{Selected: ptr("playing")}); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("now playing write = %v, want unavailable", err)
+	}
+
+	// A track lists only the parts the platform named, in display order.
+	got = Value{Options: trackOptions(media.Playback{Title: "Song", App: "Music"})}
+	if len(got.Options) != 2 || got.Options[0].ID != "title" || got.Options[1].Label != "Music" {
+		t.Fatalf("track options %+v", got.Options)
+	}
+	if opts := trackOptions(media.Playback{}); opts != nil {
+		t.Fatalf("empty track listed %+v", opts)
 	}
 
 	keys := &fakeKeyboard{available: true}

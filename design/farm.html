@@ -537,6 +537,26 @@
   .radio button:active,
   .radio button.tap { background: #9be77b; }
 
+  /* The track is a line inside the radio, above the buttons. The scene
+     clips anything that sticks out, so it stays in the box, and it shows the
+     state when the system names no track. */
+  .radio { flex-direction: column; align-items: stretch; }
+
+  .radio .track {
+    max-width: 84px;
+    padding: 1px 4px;
+    font-size: 10px;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .radio .track[hidden] { display: none; }
+
+  .radio .keys { display: flex; }
+
   .windmill .glyph {
     display: inline-block;
     font-size: 20px;
@@ -609,9 +629,12 @@
         <span class="glyph">🐔</span>
       </button>
       <div class="radio" id="radio" hidden>
-        <button type="button" data-media="previous" title="收音机：上一首">⏪</button>
-        <button type="button" data-media="toggle" title="收音机：播放或暂停">▶︎</button>
-        <button type="button" data-media="next" title="收音机：下一首">⏩</button>
+        <div class="track" id="track" hidden></div>
+        <div class="keys">
+          <button type="button" data-media="previous" title="收音机：上一首">⏪</button>
+          <button type="button" data-media="toggle" title="收音机：播放或暂停">▶︎</button>
+          <button type="button" data-media="next" title="收音机：下一首">⏩</button>
+        </div>
       </div>
       <button class="yard-btn windmill" id="windmill" type="button" hidden title="风车管 Wi-Fi">
         <span class="glyph">💨</span>
@@ -916,6 +939,7 @@
   const lampPct = document.getElementById("lampPct");
   const chicken = document.getElementById("chicken");
   const radio = document.getElementById("radio");
+  const track = document.getElementById("track");
   const windmill = document.getElementById("windmill");
   const yard = document.getElementById("yard");
 
@@ -1018,7 +1042,34 @@
       bright = Math.max(0, Math.min(100, Math.round(change.brightness)));
       showLamp();
     }
+    if (change.nowPlaying) showTrack(change.nowPlaying);
   });
+
+  // The track names what is playing. A control row keeps the state in
+  // `selected` and the names in `options`; the live event already uses the
+  // plain names. The system often withholds the title, so the state stands
+  // in: playing, paused, or nothing when it stopped.
+  function showTrack(playing) {
+    const named = trackName(playing);
+    const state = playing.state || playing.selected || "";
+    const text = named || { playing: "播放中", paused: "已暂停" }[state] || "";
+    track.hidden = !text;
+    track.textContent = text;
+    const toggle = radio.querySelector('[data-media="toggle"]');
+    if (toggle) toggle.textContent = state === "playing" ? "⏸" : "▶︎";
+  }
+
+  function trackName(playing) {
+    if (playing.title || playing.artist) {
+      return [playing.title, playing.artist].filter(Boolean).join(" · ");
+    }
+    const options = Array.isArray(playing.options) ? playing.options : [];
+    const label = (id) => {
+      const found = options.find((option) => option.id === id);
+      return found ? found.label : "";
+    };
+    return [label("title"), label("artist")].filter(Boolean).join(" · ");
+  }
 
   function applyLevel(value) {
     const next = Math.max(0, Math.min(100, Math.round(value)));
@@ -1095,6 +1146,8 @@
           const row = byId("media." + key);
           return row && row.available;
         });
+        const playing = byId("media.nowplaying");
+        if (playing && playing.available) showTrack(playing);
       }
     }
     // 浏览器里直接打开没有桥，四项都露出来，只改页面。
@@ -1140,6 +1193,8 @@
         plantedCount += 1;
         return seed.icon;
       });
+      // -1 只让重铺看见变化。田对得上就不走重铺，读数要写回去。
+      level = readLevel;
       updateVolume();
     } else {
       applyLevel(readLevel);

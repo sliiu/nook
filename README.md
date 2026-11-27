@@ -30,7 +30,7 @@ Download the latest `.dmg` from [Releases](https://github.com/sliiu/nook/release
 
 A scene is your own control center: one HTML file using the `Control` and `events` globals. The flyout's size, corners and background all come from the scene, so you decide what it looks like and which controls it shows.
 
-Volume and brightness came first. A scene now also reaches the microphone, the keyboard backlight, the output device, the media keys, appearance and Wi-Fi through the same `Control`.
+Volume and brightness came first. A scene now also reaches the microphone, the keyboard backlight, the output device, the media keys, what is playing, appearance and Wi-Fi through the same `Control`. What is playing reports its state; macOS 26 does not hand over the track's name.
 
 - **Home** is the example that ships with the app, a two-axis pad with volume across and brightness down. You can edit it but not delete it; Restore factory Home writes the built-in one back.
 - **Import** only loads the preview. Nothing is saved until you press Save.
